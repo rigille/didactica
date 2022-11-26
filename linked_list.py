@@ -1,28 +1,16 @@
-from typing import Generic, TypeVar, final
+from typing import Generic, TypeVar, final, Union
 from dataclasses import dataclass
 
 T = TypeVar("T")
 
-class List(Generic[T]): ...
+LinkedList = Union['Cons[T]', 'Nil[T]']
 
 @final
 @dataclass
-class Cons(List[T]):
+class Cons(Generic[T]):
     head: T
-    tail: List[T]
+    tail: 'LinkedList[T]'
 
 @final
-class Nil(List[T]): ...
-
-
-a: List[int] = Cons(3, Cons(2, Nil()))
-
-def print_list(l: List[T]) -> None:
-    match l:
-        case Cons(head, tail):
-            print(head)
-            print_list(tail)
-        case Nil:
-            print("***")
-
-print_list(a)
+@dataclass
+class Nil(Generic[T]): ...
