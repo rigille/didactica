@@ -1,2 +1,2 @@
 # didactica
-OCaml libs focused on good documentation and ease of understanding
+Libs on miscellaneous languages focused on good documentation and ease of understanding
