@@ -1,0 +1,4 @@
+(executable
+ (public_name guessing_game)
+ (name main)
+ (libraries guessing_game))
