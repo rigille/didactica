@@ -1,7 +1,12 @@
 # TODO list
-- [ ] Print guess the number
-- [ ] Generate a random number
-- [ ] Receive user input
-- [ ] Parse input
-- [ ] Say whether its bigger or smaller, if it's equal print win
-- [ ] Loop
+- [x] Print guess the number
+- [x] Generate a random number
+- [x] Receive user input
+- [x] Parse input
+- [x] Say whether its bigger or smaller, if it's equal print win
+- [x] Loop
+- [ ] Put a function in lib
+- [ ] Write unit tests
+- [ ] Write property-based tests
+- [ ] Write documentation
+- [ ] Package flake
