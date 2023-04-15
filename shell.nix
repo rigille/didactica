@@ -11,6 +11,7 @@ pkgs.mkShell {
     ocamlPackages.utop
     ocamlPackages.ocaml-lsp
     pkgs.ocamlformat
+    pkgs.tree
   ];
   shellHook = (builtins.readFile ./.bashrc);
 }
