@@ -1,5 +1,6 @@
 let () =
   print_endline "Guess the number!";
+  Random.self_init ();
   let secret_number = Random.int 100 in
   print_endline ("DEBUG: the number is: " ^ (string_of_int secret_number));
   print_endline "Please input your guess.";
