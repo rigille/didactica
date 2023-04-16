@@ -1,4 +1,5 @@
-open Game_loop;;
+open Guessing_game.Game_loop;;
+
 let main () =
   print_endline "Guess the number!";
   Random.self_init ();

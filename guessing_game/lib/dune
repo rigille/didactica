@@ -1,0 +1,5 @@
+(library
+ (name guessing_game)
+ (package guessing_game))
+(documentation
+ (package guessing_game))

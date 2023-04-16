@@ -1,0 +1,26 @@
+{0 Streaming}
+
+Streaming abstractions that combine, transform and reduce large amounts of
+sequential data efficiently, in constant space and without leaking resources.
+
+{1 Overview}
+
+{e Streaming} uses composable stream producers (sources), consumers (sinks) and
+transformers (flows). The central model that abstracts over them is a.
+
+The following features are provided:
+
+- {b Constant memory usage}: large or infinite streams can be computed in constant
+  and small space. Buffering of the input is possible when needed.
+- {b Excellent performance}: all models were designed with performance at the
+  core. See {{:https://github.com/rizo/streams-bench} benchmarks} for detailed
+  comparison with other libraries.
+- {b Resource safety}: resources in effectful streaming pipelines are allocated
+  lazily and released as early as possible. Resources are guaranteed to
+  be terminated even when streams rise exceptions.
+- {b Flexibility and loose coupling}: push-based and pull-based models are
+  implemented to allow efficient zipping, concatenation and implementation of
+  decoupled sources, sinks and flows.
+- {b Streaming notation}: build streams and sinks using a convenient
+  comprehension and applicative notations (see examples {{:#using-stream-notation} below}).
+
