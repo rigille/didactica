@@ -1,6 +1,7 @@
 open Comparison;;
 let rec game_loop (secret_number : int) : unit =
   print_endline "Please input your guess.";
+  print_string "> ";
   let user_input = read_line () in
   match int_of_string_opt user_input with
   | Some guess -> 
@@ -14,5 +15,5 @@ let rec game_loop (secret_number : int) : unit =
     | Equal ->
       print_endline "You won, congratulations!")
   | None ->
-    print_endline "Please guess a reasonably small number";
+    print_endline "The guess needs to be a reasonably small natural number";
     game_loop secret_number;;
