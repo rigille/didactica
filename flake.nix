@@ -9,7 +9,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       {
         packages = {
-          guessing-game = ((import "${self}/guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
+          guessing_game = ((import "${self}/guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
         };
 
         devShells = {
@@ -24,7 +24,7 @@
 
             # Tools from packages
             inputsFrom = [
-              self.packages.${system}.guessing-game
+              self.packages.${system}.guessing_game
             ];
           };
         };
