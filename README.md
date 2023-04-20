@@ -4,6 +4,7 @@ Libs on miscellaneous languages focused on good documentation and ease of unders
 # Projects
 - [ ] Guess the number
 - [ ] Palindrome checker
+- [ ] Snek
 - [ ] CLI google client
 - [ ] Caesar cipher
 - [ ] Basic calculator
