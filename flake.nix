@@ -3,6 +3,7 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
+    lean4.url = "github:leanprover/lean4";
   };
 
   outputs = { self, nixpkgs, flake-utils }:
