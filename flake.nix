@@ -3,24 +3,29 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    lean4.url = "github:leanprover/lean4";
   };
 
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in
       {
         packages = {
           guessing_game = ((import "${self}/guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
         };
 
         devShells = {
-          default = nixpkgs.mkShell {
+          default = pkgs.mkShell {
             # Development tools
             packages = [
-              nixpkgs.ocamlformat
-              nixpkgs.ocamlPackages.odoc
-              nixpkgs.ocamlPackages.ocaml-lsp
-              nixpkgs.ocamlPackages.utop
+              pkgs.ocamlformat
+              pkgs.ocamlPackages.odoc
+              pkgs.ocamlPackages.ocaml-lsp
+              pkgs.ocamlPackages.utop
+              pkgs.coq
+              pkgs.coqPackages.coqide
+              pkgs.coqPackages.topology
             ];
 
             # Tools from packages
