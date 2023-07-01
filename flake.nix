@@ -12,7 +12,7 @@
       in
       {
         packages = {
-          guessing_game = ((import "${self}/guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
+          ocaml_guessing_game = ((import "${self}/ocaml_guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
         };
 
         devShells = {
@@ -31,6 +31,11 @@
             # Tools from packages
             inputsFrom = [
               self.packages.${system}.guessing_game
+            ];
+          };
+          scheme = pkgs.mkShell {
+            packages = [
+              pkgs.chez-racket
             ];
           };
         };
