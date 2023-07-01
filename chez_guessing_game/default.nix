@@ -8,8 +8,9 @@ pkgs.stdenv.mkDerivation rec {
   buildPhase = ''
     mkdir -p $out/bin
     cd src
-    ${chez-racket} --script ../compile.scm $out/bin/${name}
+    ${pkgs.chez-racket}/bin/scheme --script ../compile.scm $out/bin/${name}
   '';
   installPhase = ''
+    chmod +x $out/bin/${name}
   '';
 }
