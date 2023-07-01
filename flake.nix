@@ -13,6 +13,7 @@
       {
         packages = {
           ocaml_guessing_game = ((import "${self}/ocaml_guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
+          chez_guessing_game = ((import "${self}/chez_guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
         };
 
         devShells = {
