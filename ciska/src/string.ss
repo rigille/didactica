@@ -4,9 +4,8 @@
     (string-copy! second 0 output (string-length first) (string-length second))
     output))
 (define (cat . parameters)
-    (let ((total (fold-left
-                   (lambda (total text)
-                     (+ total (string-length text)))
-                   0
-                   parameters)))
-      (make-string total)))
+      (let* ((total (fold-left
+                     +
+                     0                                                       (map string-length parameters)))
+             (fresh (make-string total)))
+        fresh))
