@@ -1,11 +1,14 @@
-(define (concatenate first second)
-  (let ((output (make-string (+ (string-length first) (string-length second)))))
-    (string-copy! first 0 output 0 (string-length first))
-    (string-copy! second 0 output (string-length first) (string-length second))
+(define (concatenate . parameters)
+  (let* ((total (fold-left
+                  (lambda (total text)
+                    (+ total (string-length text)))
+                  0
+                  parameters))
+         (output (make-string total)))
+    (fold-left
+      (lambda (total text)
+        (string-copy! text 0 output total (string-length text))
+        (+ total (string-length text)))
+      0
+      parameters)
     output))
-(define (cat . parameters)
-      (let* ((total (fold-left
-                     +
-                     0                                                       (map string-length parameters)))
-             (fresh (make-string total)))
-        fresh))
