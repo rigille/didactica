@@ -3,7 +3,7 @@
           make-regex-concatenate regex-concatenate? regex-concatenate-left
           regex-concatenate-right
           make-regex-union regex-union? regex-union-left regex-union-right
-          regex-star regex-star? regex-star-subject)
+          regex-star regex-star? regex-star-subject regex-from-list)
   (import (rnrs))
   ; records to compose regexes
   (define-record-type regex-concatenate (fields left right))
@@ -33,6 +33,10 @@
            (regex? (regex-union-right candidate))))
       ((regex-star? candidate)
          (regex? (regex-star-subject candidate)))
-      (else #f))))
-
-
+      (else #f)))
+  (define (regex-from-list l)
+    (cond
+      ((null? l)
+         'empty-string)
+      ((pair? l)
+         (make-regex-concatenate (car l) (regex-from-list (cdr l)))))))
