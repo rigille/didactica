@@ -1,5 +1,0 @@
-(executable
- (public_name guessing_game)
- (name guessing_game)
- (libraries guessing_game))
-

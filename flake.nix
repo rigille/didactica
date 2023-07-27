@@ -12,18 +12,14 @@
       in
       {
         packages = {
-          ocaml_guessing_game = ((import "${self}/ocaml_guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
-          chez_guessing_game = ((import "${self}/chez_guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
+          guessing_game = ((import "${self}/guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
         };
 
         devShells = {
           default = pkgs.mkShell {
             # Development tools
             packages = [
-              pkgs.ocamlformat
-              pkgs.ocamlPackages.odoc
-              pkgs.ocamlPackages.ocaml-lsp
-              pkgs.ocamlPackages.utop
+              pkgs.chez-racket
               pkgs.coq
               pkgs.coqPackages.coqide
               pkgs.coqPackages.topology
@@ -32,11 +28,6 @@
             # Tools from packages
             inputsFrom = [
               self.packages.${system}.guessing_game
-            ];
-          };
-          scheme = pkgs.mkShell {
-            packages = [
-              pkgs.chez-racket
             ];
           };
         };
