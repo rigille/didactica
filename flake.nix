@@ -22,7 +22,7 @@
               pkgs.chez-racket
               pkgs.coq
               pkgs.coqPackages.coqide
-              pkgs.coqPackages.topology
+              #pkgs.coqPackages.topology
             ];
 
             # Tools from packages
