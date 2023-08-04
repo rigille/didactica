@@ -11,12 +11,39 @@ Fixpoint insert {X : Type} (pos : nat) (x : X) (l : list X) : list X :=
   end.
 
 Fixpoint permute {X : Type} (swaps : list nat) (l : list X) : list X :=
-  match swaps, l with
-  | n :: swaps', h :: t => insert n h (permute swaps' t)
-  | [], [] => []
-  | [], h :: t => h :: t
-  | n :: swaps, [] => []
+  match swaps with
+  | [] => l
+  | n :: swaps' => match l with
+                   | [] => []
+                   | h :: t => insert n h (permute swaps' t)
+                   end
   end.
+
+Search (list ?a -> list ?a -> list ?a).
+Theorem list_useless_match : forall X (l : list X),
+  l = match l with
+      | [] => []
+      | h :: t => h :: t
+      end.
+Proof.
+  destruct l; reflexivity.
+Qed.
+
+Theorem permute_split : forall X n s (l : list X),
+  permute s l =
+  permute (firstn n s)
+          (app (firstn n l)
+               (permute (skipn n s)
+                        (skipn n l))).
+Proof.
+  induction n; intros.
+  - simpl. reflexivity.
+  - simpl. destruct s; destruct l; simpl.
+    + reflexivity.
+    + rewrite firstn_skipn. reflexivity.
+    + destruct (skipn n s); reflexivity.
+    + rewrite <- IHn. reflexivity.
+Qed. 
 
 Definition swap_inserts (m n : nat) : nat * nat :=
   match n <=? m with
