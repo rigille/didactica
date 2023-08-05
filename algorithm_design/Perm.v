@@ -27,12 +27,6 @@ Fixpoint equivalent_insert (s : list nat) (n : nat) :=
                 increment + previous
   end.
 
-Fixpoint compose (s0 s1 : list nat) :=
-  match s1 with
-  | [] => s0
-  | n1 :: st1 => let prefix = taken n1 s0 in
-                 let suffix = skipn 
-
 Search (list ?a -> list ?a -> list ?a).
 
 Theorem permute_split : forall X n s (l : list X),
@@ -50,6 +44,19 @@ Proof.
     + destruct (skipn n s); reflexivity.
     + rewrite <- IHn. reflexivity.
 Qed.
+
+Theorem firstn_app : forall X (n : nat) (a b : list X),
+  le (length a) n ->
+  firstn n (app a b)
+  =
+  (app a
+       (firstn (sub n (length a))
+               b)).
+Proof.
+Admitted.
+(* firstn_length_le *)
+
+Search firstn.
 
 Theorem insert_not_empty : forall X pos (x : X) l, ~ ([] = insert pos x l).
 Proof.
