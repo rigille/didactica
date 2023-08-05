@@ -20,14 +20,6 @@ Fixpoint permute {X : Type} (swaps : list nat) (l : list X) : list X :=
   end.
 
 Search (list ?a -> list ?a -> list ?a).
-Theorem list_useless_match : forall X (l : list X),
-  l = match l with
-      | [] => []
-      | h :: t => h :: t
-      end.
-Proof.
-  destruct l; reflexivity.
-Qed.
 
 Theorem permute_split : forall X n s (l : list X),
   permute s l =
@@ -43,7 +35,7 @@ Proof.
     + rewrite firstn_skipn. reflexivity.
     + destruct (skipn n s); reflexivity.
     + rewrite <- IHn. reflexivity.
-Qed. 
+Qed.
 
 Definition swap_inserts (m n : nat) : nat * nat :=
   match n <=? m with
@@ -82,22 +74,61 @@ Proof.
       simpl. admit.
     * admit.
   - apply Compare_dec.not_le in Bigger.
+Admitted.
 
-  
+Definition equivalent_insert (s : list nat) (n : nat) :=
+  match s with
+  | [] => n
+  | sh :: st => let previous = equivalent_insert st n in
+                let increment = if leb sh previous then 1 else 0 in
+                increment + previous
+  end.
+
+
+permute s (permute (sh :: st) (h :: t))
+
+let pt = permute st t
+permute s ((firstn sh pt) ++ h :: (skipn sh pt))
+
+let pt = permute st t
+let inserted = ((firstn sh pt) ++ h :: (skipn sh pt))
+permute (firstn sh s)
+        (app (firstn inserted)
+             (permute (skipn sh s)
+                      (skipn sh inserted)))
+
+let pt = permute st t
+permute (firstn sh s)
+        (app (firstn sh pt)
+             (permute (skipn sh s)
+                      (h :: (skipn sh pt))))
+
+* caso skipn sh = []
+
+let pt = permute st t
+permute s (insert sh h pt)
+
+* caso skipn sh s = (ssh :: sst)
+
+let pt = permute st t
+let (ssh, sst) = skipn sh s
+permute (firstn sh s)
+        (app (firstn sh pt)
+             (permute (ssh :: sst)
+                      (h :: (skipn sh pt))))
+
+let pt = permute st t
+let (ssh, sst) = skipn sh s
+permute (firstn sh s)
+        (insert (ssh + sh)
+                h
+                (app (firstn sh pt)
+                     (permute sst (skipn sh pt))))
+
 
 Definition insert_to_permute (f : nat -> list nat -> list nat) := 
  forall (X : Type) (i : nat) (s : list nat) (h : X) (t : list X),
    insert i h (permute s t) = permute (f i s) (h :: t).
-
-Definition
-
-permute s (permute (i1 :: s1) (h :: t))
-
-permute (i0 :: i0' :: s0) (insert (S O) h (l :: ls))
-permute (i0 :: i0' :: s0) (l :: h :: ls)
-insert i0 l (permute (i0' :: s0) (h :: ls))
-insert i0 l (insert i0' h (permute s ls))
-insert i0'' h (insert i0' l (permute s ls))
 
 Theorem permute_cons_O_right : forall X i s0 s1 s' h (t : list X),
   permute s0 (permute s1 t) = permute s' t ->
