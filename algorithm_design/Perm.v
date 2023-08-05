@@ -19,6 +19,20 @@ Fixpoint permute {X : Type} (swaps : list nat) (l : list X) : list X :=
                    end
   end.
 
+Fixpoint equivalent_insert (s : list nat) (n : nat) :=
+  match s with
+  | [] => n
+  | sh :: st => let previous := equivalent_insert st n in
+                let increment := if leb sh previous then 1 else 0 in
+                increment + previous
+  end.
+
+Fixpoint compose (s0 s1 : list nat) :=
+  match s1 with
+  | [] => s0
+  | n1 :: st1 => let prefix = taken n1 s0 in
+                 let suffix = skipn 
+
 Search (list ?a -> list ?a -> list ?a).
 
 Theorem permute_split : forall X n s (l : list X),
@@ -37,12 +51,6 @@ Proof.
     + rewrite <- IHn. reflexivity.
 Qed.
 
-Definition swap_inserts (m n : nat) : nat * nat :=
-  match n <=? m with
-  | true => (n, m)
-  | false => ((S n), m)
-  end.
-
 Theorem insert_not_empty : forall X pos (x : X) l, ~ ([] = insert pos x l).
 Proof.
   intros. destruct pos; destruct l; discriminate.
@@ -59,30 +67,6 @@ Proof.
       + fold firstn in IHl. admit.
 Admitted.
 
-Theorem swap_inserts_swaps : forall X n0 n1 h0 h1 (t : list X),
-  insert (S n0) h0 (insert n1 h1 t) =
-  let (m0, m1) := swap_inserts n0 n1 in
-  insert m0 h1 (insert m1 h0 t).
-Proof.
-  intros. unfold swap_inserts. Search (Bool.reflect (?a <= ?b) (?a <=? ?b)).
-  destruct (Nat.leb_spec0 n1 n0) as [Smaller | Bigger].
-  - induction Smaller.
-    * remember (insert n1 h1 t) as Insert11.
-      remember (insert n1 h0 t) as Insert10.
-      destruct Insert11. exfalso.
-      apply (insert_not_empty _ _ _ _ HeqInsert11).
-      simpl. admit.
-    * admit.
-  - apply Compare_dec.not_le in Bigger.
-Admitted.
-
-Definition equivalent_insert (s : list nat) (n : nat) :=
-  match s with
-  | [] => n
-  | sh :: st => let previous = equivalent_insert st n in
-                let increment = if leb sh previous then 1 else 0 in
-                increment + previous
-  end.
 
 
 permute s (permute (sh :: st) (h :: t))
