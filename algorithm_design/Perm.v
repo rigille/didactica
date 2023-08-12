@@ -119,19 +119,24 @@ Proof.
 Admitted.
 
 Theorem two_swaps_le_S : forall X (n n' : nat) (h h' : X) (l : list X),
-  n' <= (S n) ->
-  insert n h (insert n' h' l) =
-  (firstn n' l) ++ h' :: (firstn (sub n' (S n)) (skipn n l)) ++ h :: (skipn n l).
+  n <= n' ->
+  insert (S n') h' (insert n h l) =
+  (firstn n l) ++ h :: (firstn (sub n' n) (skipn n l)) ++ h' :: (skipn n' l).
 Proof.
 Admitted.
 
 Theorem swap_inserts : forall X (n n' : nat) (h h' : X) (l : list X),
   n <= n' ->
-  insert n h (insert n' h' l) = insert n' h' (insert (S n) h l).
+  insert (S n') h' (insert n h l) = insert n h (insert n' h' l).
 Proof.
   intros.
-  rewrite two_swaps_le. rewrite two_swaps_le_S.
-Admitted.
+  rewrite two_swaps_le_S.
+  - rewrite two_swaps_le.
+    + reflexivity.
+    + apply H.
+  - apply H.
+Qed.
+
   (* (firstn n l) ++ h :: (firstn (sub n' n) (skipn n l)) ++ h' :: (skip n' l) *)
 
 Theorem permute_insert : forall X s n (h : X) (l : list X),
@@ -192,7 +197,7 @@ permute (firstn sh s)
 
 
 permute s (insert n h l) = insert (equivalent_insert s n) h (permute s l).
- *)
+*)
 
 Fixpoint inserts {X : Type} (x : X) (l s : list X) : Prop :=
   (s = List.cons x l) \/
