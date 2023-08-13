@@ -1,4 +1,4 @@
-From Coq Require Import List Permutation Nat Datatypes PeanoNat.
+From Coq Require Import Bool List Permutation Nat Datatypes PeanoNat.
 Import ListNotations.
 
 Fixpoint insert {X : Type} (pos : nat) (x : X) (l : list X) : list X :=
@@ -94,14 +94,6 @@ Proof.
   intros. simpl. rewrite H. reflexivity.
 Qed.
 
-Fixpoint equivalent_insert (s : list nat) (n : nat) :=
-  match s with
-  | [] => n
-  | sh :: st => let previous := equivalent_insert st n in
-                let increment := if leb sh previous then 1 else 0 in
-                increment + previous
-  end.
-
 Fixpoint valid_swaps (s : list nat) (n : nat) : Prop :=
   match s with
   | [] => True
@@ -119,39 +111,83 @@ Proof.
 Admitted.
 
 Theorem two_swaps_le_S : forall X (n n' : nat) (h h' : X) (l : list X),
-  n <= n' ->
-  insert (S n') h' (insert n h l) =
-  (firstn n l) ++ h :: (firstn (sub n' n) (skipn n l)) ++ h' :: (skipn n' l).
+  n' > n ->
+  insert n' h' (insert n h l) =
+  (firstn n l) ++ h :: (firstn (sub (pred n') n) (skipn n l)) ++ h' :: (skipn (pred n') l).
 Proof.
 Admitted.
 
-Theorem swap_inserts : forall X (n n' : nat) (h h' : X) (l : list X),
-  n <= n' ->
-  insert (S n') h' (insert n h l) = insert n h (insert n' h' l).
+Theorem swap_inserts_gt : forall X (n n' : nat) (h h' : X) (l : list X),
+  n' > n ->
+  insert n' h' (insert n h l) = insert n h (insert (pred n') h' l).
 Proof.
   intros.
   rewrite two_swaps_le_S.
   - rewrite two_swaps_le.
     + reflexivity.
-    + apply H.
+    + apply Nat.lt_le_pred. apply H.
   - apply H.
 Qed.
 
-  (* (firstn n l) ++ h :: (firstn (sub n' n) (skipn n l)) ++ h' :: (skip n' l) *)
-
-Theorem permute_insert : forall X s n (h : X) (l : list X),
-  valid_swaps s (length l) ->
-  permute s (insert n h l) = insert (equivalent_insert s n) h (permute s l).
+Theorem swap_inserts_le : forall X (n n' : nat) (h h' : X) (l : list X),
+  n' <= n ->
+  insert n' h' (insert n h l) = insert (S n) h (insert n' h' l).
 Proof.
-  induction s.
+  intros. symmetry. apply swap_inserts_gt. Search (_ <= _ -> _ < S _).
+  apply Arith_prebase.le_lt_n_Sm. apply H.
+Qed.
+
+Fixpoint equivalent_insert (s : list nat) (n : nat) : list nat * nat :=
+  match s with
+  | [] => ([], n)
+  | sh :: st => let (st', n') := equivalent_insert st (pred n) in
+                if sh <=? n' then
+                  (sh :: st', (S n'))
+                else
+                  ((pred sh) :: st', n')
+  end.
+(*
+permute (a :: b :: []) (x :: y :: h :: [])
+insert a x (insert b y (insert 0 h []))
+*)
+Theorem valid_swaps_not_empty : forall X a s (l : list X),
+valid_swaps (a :: s) (length l) ->
+~ [] = l.
+Proof.
+  destruct l; simpl; intros; destruct H as [H1 H2].
+  - exfalso. apply H2.
+  - discriminate.
+Qed.
+
+Theorem equivalent_insert_spec : forall X (s s': list nat) (n n': nat) (h : X) (l : list X),
+  valid_swaps s (length l) ->
+  le (length s) n ->
+  le n (length l) ->
+  (s', n') = equivalent_insert s n ->
+  permute s (insert n h l) = insert n' h (permute s' l).
+Proof.
+  induction n; intros.
+  - inversion H0. destruct s; try discriminate.
+    simpl in H2. injection H2; intros. 
+    rewrite H5. rewrite H3. reflexivity.
+  - destruct l. inversion H1. destruct s.
+    * simpl. injection H2; intros.
+      rewrite H3. rewrite H4. reflexivity.
+    * simpl. simpl in H2. rewrite IHn with n h l.  destruct (Nat.leb_spec n0 n').
+      +
+(*  intros. induction s.
   - reflexivity.
-  - intros. simpl. remember (insert n h l) as l0.
-    destruct l0. exfalso. apply (insert_not_empty X n h l). apply Heql0.
-    Search (_ (le _ _) (leb _ _)). destruct (Nat.leb_spec0 a (equivalent_insert s n)).
-    + admit.
-    + destruct l. destruct H as [_ contra]; simpl in contra. exfalso; apply contra.
-      apply Compare_dec.not_le in n0. apply Arith_prebase.gt_le_S_stt in n0. simpl.
-Admitted.
+  - simpl. remember (equivalent_insert s (pred n)) as ei.
+    destruct ei as [st'' n''].
+    destruct (Nat.leb_spec0 a n'').
+    + remember (insert n h l) as inhl.
+      destruct inhl as [|ilh ilt].
+       * exfalso. apply (insert_not_empty X n h l).
+         apply Heqinhl.
+       * simpl. destruct l.
+       simpl in H.
+       Search (reflect (_ <= _) _). Nat.le_spec. *)
+(* (firstn n l) ++ h :: (firstn (sub n' n) (skipn n l)) ++ h' :: (skip n' l) *)
 
 (*
 permute s (permute (sh :: st) (h :: t))
@@ -172,7 +208,7 @@ permute (firstn sh s)
              (permute (skipn sh s)
                       (h :: (skipn sh pt))))
 
-* caso skipn sh = []
+* caso skipn sh s = []
 
 let pt = permute st t
 permute s (insert sh h pt)
