@@ -159,34 +159,45 @@ Proof.
   - discriminate.
 Qed.
 
-Theorem equivalent_insert_spec : forall X (s s': list nat) (n n': nat) (h : X) (l : list X),
+Lemma equivalent_insert_spec : forall X (s s': list nat) (n n': nat) (h : X) (l : list X),
   valid_swaps s (length l) ->
-  le (length s) n ->
-  le n (length l) ->
+  le (length s)
+     n ->
+  le n
+     (length l) ->
   (s', n') = equivalent_insert s n ->
   permute s (insert n h l) = insert n' h (permute s' l).
 Proof.
-  induction n; intros.
-  - inversion H0. destruct s; try discriminate.
-    simpl in H2. injection H2; intros. 
-    rewrite H5. rewrite H3. reflexivity.
-  - destruct l. inversion H1. destruct s.
-    * simpl. injection H2; intros.
-      rewrite H3. rewrite H4. reflexivity.
-    * simpl. simpl in H2. rewrite IHn with n h l.  destruct (Nat.leb_spec n0 n').
-      +
-(*  intros. induction s.
-  - reflexivity.
-  - simpl. remember (equivalent_insert s (pred n)) as ei.
-    destruct ei as [st'' n''].
-    destruct (Nat.leb_spec0 a n'').
-    + remember (insert n h l) as inhl.
-      destruct inhl as [|ilh ilt].
-       * exfalso. apply (insert_not_empty X n h l).
-         apply Heqinhl.
-       * simpl. destruct l.
-       simpl in H.
-       Search (reflect (_ <= _) _). Nat.le_spec. *)
+  induction s; intros.
+  - simpl. simpl in H2. injection H2; intros. rewrite H3.
+    rewrite H4. reflexivity.
+  - simpl. destruct l as [|lh lt].
+    + simpl in H. destruct H as [VH contra]. contradiction contra.
+    + simpl. destruct n. inversion H0. simpl.
+      simpl in H2. remember (equivalent_insert s n) as eisn.
+      destruct eisn as [s'' n''].
+      destruct (Nat.leb_spec a n''); injection H2; intros.
+      { rewrite H5. simpl. 
+        rewrite (IHs s'' n n'').
+        rewrite swap_inserts_le.
+        rewrite H4. reflexivity.
+        apply H3. simpl in H.
+        destruct H as [HL HR].
+        apply HR. apply le_S_n. apply H0.
+        apply le_S_n. apply H1. apply Heqeisn. }
+      { rewrite H5. simpl.
+        rewrite (IHs s'' n n''). rewrite swap_inserts_gt.
+        rewrite H4. reflexivity.
+        apply H3. simpl in H.
+        destruct H as [HL HR].
+        apply HR. apply le_S_n.
+        apply H0. apply le_S_n.
+        apply H1. apply Heqeisn. }
+Qed.
+
+(*
+permute (sh :: st) insert n h l)
+*)
 (* (firstn n l) ++ h :: (firstn (sub n' n) (skipn n l)) ++ h' :: (skip n' l) *)
 
 (*
