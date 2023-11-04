@@ -123,7 +123,16 @@ Lemma bounded_digits_safe_to_digitize : forall digit_list base,
   Forall (fun d => -1 < d < base) digit_list ->
   (0 <= number base digit_list).
 Proof.
-Admitted.
+  induction digit_list; intros.
+  - simpl. lia.
+  - simpl. inversion H. destruct H2. assert (0 <= number base digit_list).
+    apply IHdigit_list. apply H3. assert (0 <= a) by lia. assert (0 <= base) by lia.
+    Search (0 <= ?a -> 0 <= ?b -> 0 <= ?a * ?b).
+    assert (0 <= base * (number base digit_list)).
+    apply Z.mul_nonneg_nonneg.
+    apply H7. apply H5.
+    lia.
+Qed.
 
 Theorem digitize_clamps_number (digits : list Z) (base : Z)
   (H0 : 1 < base)
@@ -134,6 +143,9 @@ Theorem digitize_clamps_number (digits : list Z) (base : Z)
   =
   (clamp digits).
 Proof.
+  induction digits.
+  - reflexivity.
+  - admit.
 Admitted.
 
 
