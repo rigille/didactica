@@ -105,6 +105,7 @@ Proof.
     apply (Z_div_mod_eq_full n0 base0). apply Hdigit_list.
     apply Hdigit_list.
 Qed.
+Print Z_div_mod_eq_full.
 
 Definition is_empty {X : Type} (l : list X) : bool :=
   match l with
@@ -214,3 +215,12 @@ Proof.
         * apply proof_irrelevance.
         * apply H6.
 Qed.
+
+(* Inspired by Zdiv_mod_unique in the stdlib *)
+Lemma compare_div_mod : forall base q0 q1 r0 r1,
+  1 < base ->
+  0 <= r0 < base ->
+  0 <= r1 < base ->
+  base*q0+r0 < base*q1+r1 <-> q0 < q1 \/ ((q0 = q1) /\ r0 < r1).
+Proof.
+Admitted.
