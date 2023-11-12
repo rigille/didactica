@@ -83,7 +83,7 @@ Qed.
 
 Check fold_right.
 
-Definition number (base : Z) (l : list Z) := fold_right (fun h t => h + t*base) 0 l.
+Definition number (base : Z) (l : list Z) := fold_right (fun h t => t*base + h) 0 l.
 
 Compute number 10 (digitize 10 153 ok1 ok0).
 Check digitize.
@@ -100,7 +100,7 @@ Proof.
   - simpl. rewrite (digits_cons_inversion_head a digits base0 n0 H0 H1).
     apply (digits_cons_inversion_tail a digits base0 n0 H0 H1) in Hdigit_list.
     rewrite (IHdigits (n0 / base0) base0 (Z.div_pos n0 base0 H1 (relax_lower_bound H0)) H0).
-    symmetry. rewrite (Z.add_comm (n0 mod base0) ((n0 / base0) * base0)).
+    symmetry.
     rewrite (Z.mul_comm (n0 / base0) base0).
     apply (Z_div_mod_eq_full n0 base0). apply Hdigit_list.
     apply Hdigit_list.
@@ -194,11 +194,12 @@ Proof.
       symmetry. rewrite <- clamp_all_zeros. apply e.
     + simpl.
       inversion H1.
-      rewrite Z_mod_plus_full.
-      assert (base > 0) by lia.
-      remember (Z.div_pos (a + number base digits * base) base H1'0
+      remember (Z.div_pos (number base digits * base + a) base H1'0
         (relax_lower_bound H2)) as H1''.
       generalize H1'' as H1'''.
+      rewrite (Z.add_comm ((number base digits) * base) a).
+      rewrite Z_mod_plus_full.
+      assert (base > 0) by lia.
       rewrite (Z_div_plus a (number base digits) base H7).
       assert (0 <= a < base) by lia. rewrite (Z.div_small a base H8).
       simpl. Search (?a mod ?b = ?a). rewrite (Z.mod_small a base H8).
@@ -216,11 +217,13 @@ Proof.
         * apply H6.
 Qed.
 
-(* Inspired by Zdiv_mod_unique in the stdlib *)
 Lemma compare_div_mod : forall base q0 q1 r0 r1,
   1 < base ->
   0 <= r0 < base ->
   0 <= r1 < base ->
-  base*q0+r0 < base*q1+r1 <-> q0 < q1 \/ ((q0 = q1) /\ r0 < r1).
+  base*q0 + r0 <= base*q1 + r1 <-> (q0 < q1 \/ ((q0 = q1) /\ r0 <= r1)).
 Proof.
-Admitted.
+  nia.
+Qed.
+
+
