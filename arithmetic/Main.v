@@ -15,6 +15,7 @@ Proof. lia. Qed.
 
 Check Z.div_pos.
 
+
 Function digitize (base: Z) (n : Z) (H0: 1 < base) (H1: 0 <= n) {measure Z.abs_nat n} : list Z :=
   if n =? 0 then
     []
@@ -225,5 +226,43 @@ Lemma compare_div_mod : forall base q0 q1 r0 r1,
 Proof.
   nia.
 Qed.
+
+Search (Z -> Z -> comparison).
+Print Z.eqb.
+Print comparison.
+Check Gt.
+Search (list _ -> bool).
+
+Fixpoint compare (l0 l1 : list Z) :=
+  match l0, l1 with
+  | h0 :: t0, h1 :: t1 => match (compare t0 t1) with
+                          | Gt => Gt
+                          | Lt => Lt
+                          | Eq => (Z.compare h0 h1)
+                          end
+  | [], h1 :: t1 => if forallb (fun n => 0 =? n) (h1 :: t1) then
+                      Eq
+                    else
+                      Lt
+  | h0 :: t0, [] => if forallb (fun n => 0 =? n) (h0 :: t0) then
+                      Eq
+                    else
+                      Gt
+  | [], [] => Eq
+  end.
+
+Theorem compare_correct : forall base digits0 digits1,
+  (1 < base) ->
+  (Forall (fun d => -1 < d < base) digits0) ->
+  (Forall (fun d => -1 < d < base) digits1) ->
+  (compare digits0 digits1) = (Z.compare (number base digits0) (number base digits1)).
+Proof.
+Admitted.
+
+
+Definition lt {X : Type} (l0 l1 : list X) :=
+  fold_right
+    (fun p => let (a, b) := p in
+              )
 
 
