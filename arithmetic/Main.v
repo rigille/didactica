@@ -115,8 +115,10 @@ Proof.
   - simpl. rewrite digitize_equation in Hdigit_list.
     destruct (n0 =? 0) as [condition | condition] eqn:Hcondition.
     apply Z.eqb_eq. apply Hcondition. discriminate Hdigit_list.
-  - simpl. rewrite (digits_cons_inversion_head a digits base0 n0 H0 H1).
-    apply (digits_cons_inversion_tail a digits base0 n0 H0 H1) in Hdigit_list.
+  - simpl. rewrite
+    (digits_cons_inversion_head a digits base0 n0 H0 H1).
+    apply
+    (digits_cons_inversion_tail a digits base0 n0 H0 H1) in Hdigit_list.
     rewrite (IHdigits (n0 / base0) base0
                       (Z.div_pos n0 base0 H1 (relax_lower_bound H0)) H0).
     symmetry.
@@ -260,7 +262,6 @@ Proof.
   nia.
 Qed.
 
-
 Lemma compare_div_mod_gt : forall base q0 q1 r0 r1,
   1 < base ->
   0 <= r0 < base ->
@@ -276,7 +277,6 @@ Lemma compare_div_mod_eq : forall base q0 q1 r0 r1,
   0 <= r1 < base ->
   base*q0 + r0 = base*q1 + r1 <-> (q0 = q1 /\ r0 = r1).
 Proof.
-Search (_*_ + _ = _*_ + _).
   intros; split; intros.
   - apply (Z.div_mod_unique base).
     + left. apply H0.
@@ -286,34 +286,125 @@ Search (_*_ + _ = _*_ + _).
     reflexivity.
 Qed.
 
+Fixpoint product_compare c0 c1 :=
+  match c0 with
+  | Gt => Gt
+  | Lt => Lt
+  | Eq => c1
+  end.
 
-
-Search (Z -> Z -> comparison).
-Print Z.eqb.
-Print comparison.
-Check Gt.
-Search (list _ -> bool).
+Lemma compare_div_mod : forall base q0 q1 r0 r1,
+  1 < base ->
+  0 <= r0 < base ->
+  0 <= r1 < base ->
+  (eq (Z.compare (base*q0 + r0) (base*q1 + r1))
+      (product_compare (Z.compare q0 q1) (Z.compare r0 r1))).
+Proof.
+Admitted.
 
 Fixpoint compare (l0 l1 : list Z) :=
-  match l0, l1 with
-  | h0 :: t0, h1 :: t1 =>
-    match (compare t0 t1) with
-    | Gt => Gt
-    | Lt => Lt
-    | Eq => (Z.compare h0 h1)
-    end
-  | [], h1 :: t1 =>
-    if forallb (fun n => 0 =? n) (h1 :: t1) then
+  match l0 with
+  | [] =>
+    if forallb (fun n => 0 =? n) l1 then
       Eq
     else
       Lt
-  | h0 :: t0, [] =>
-    if forallb (fun n => 0 =? n) (h0 :: t0) then
-      Eq
-    else
-      Gt
-  | [], [] => Eq
+  | h0 :: t0 =>
+    match l1 with
+    | [] =>
+      if forallb (fun n => 0 =? n) (h0 :: t0) then
+        Eq
+      else
+        Gt
+    | h1 :: t1 =>
+      product_compare (compare t0 t1) (Z.compare h0 h1)
+    end
   end.
+
+(* TODO move this to a list library *)
+Theorem Forall_forallb : forall
+  {X : Type} (p : X -> Prop) (f : X -> bool) (l : list X),
+  (forall x, p x <-> (true = f x)) ->
+  ((Forall p l) <->
+  (true = forallb f l)).
+Proof.
+  intros. split; induction l; intros.
+  - reflexivity.
+  - inversion H0.
+    simpl. rewrite -> (H a) in H3.
+    rewrite <- H3.
+    rewrite <- IHl. reflexivity.
+    apply H4.
+  - apply Forall_nil.
+  - 
+    simpl in H0.
+    apply Bool.andb_true_eq in H0.
+    destruct H0.
+    apply Forall_cons.
+    rewrite H.
+    apply H0. apply IHl.
+    apply H1.
+Qed.
+
+Search Z.compare.
+
+Lemma compare_antisym : forall digits0 digits1,
+  (compare digits0 digits1) = CompOpp (compare digits1 digits0).
+Proof.
+  induction digits0; intros.
+  - destruct digits1.
+    + reflexivity.
+    + unfold compare.
+      destruct (forallb (fun n : Z => 0 =? n) (z :: digits1));
+      reflexivity.
+  - destruct digits1; unfold compare.
+    + destruct (forallb (fun n : Z => 0 =? n) (a :: digits0));
+      reflexivity.
+    + fold compare.
+      rewrite (IHdigits0 digits1).
+      destruct (compare digits1 digits0); simpl.
+      * apply Z.compare_antisym.
+      * reflexivity.
+      * reflexivity.
+Qed.
+
+Lemma compare_empty : forall base digits,
+  (1 < base) ->
+  (Forall (fun d => -1 < d < base) digits) ->
+  (eq (compare [] digits)
+      (Z.compare 0 (number base digits))).
+Proof.
+  intros.
+  unfold compare. replace (number base []) with 0 by reflexivity.
+  remember (forallb (fun n : Z => 0 =? n) digits) as all_zeros.
+  destruct all_zeros.
+  + rewrite <- (Forall_forallb (fun d => d = 0)
+                               (fun n => 0 =? n))
+    in Heqall_zeros.
+    rewrite <- (number_zero_digits_zero digits base) in Heqall_zeros.
+    rewrite <- Heqall_zeros.
+    reflexivity.
+    apply H.
+    apply H0.
+    lia.
+  + assert (number base digits <= 0 \/ 0 < number base digits)
+    by lia.
+    destruct H1.
+    * assert (0 <= number base digits).
+      apply bounded_digits_safe_to_digitize.
+      apply H0.
+      assert (0 = number base digits) by lia.
+      rewrite number_zero_digits_zero in H3.
+      rewrite (Forall_forallb (fun d => d = 0)
+                    (fun n => 0 =? n)) in H3.
+      rewrite <- Heqall_zeros in H3.
+      discriminate H3.
+      lia.
+      apply H.
+      apply H0.
+    * symmetry. rewrite Z.compare_lt_iff.
+      apply H1.
+Qed.
 
 Theorem compare_correct : forall base digits0 digits1,
   (1 < base) ->
@@ -322,13 +413,31 @@ Theorem compare_correct : forall base digits0 digits1,
   (eq (compare digits0 digits1)
       (Z.compare (number base digits0) (number base digits1))).
 Proof.
-  Search Z.compare. 
-Admitted.
-
-
-Definition lt {X : Type} (l0 l1 : list X) :=
-  fold_right
-    (fun p => let (a, b) := p in
-              )
-
-
+  induction digits0 as [ | hdigits0 tdigits0] ; intros.
+  - apply compare_empty. apply H.
+    apply H1.
+  - destruct digits1 as [ | hdigits1 tdigits1].
+    + rewrite compare_antisym.
+      rewrite (compare_empty base (hdigits0 :: tdigits0)).
+      rewrite <- Z.compare_antisym.
+      reflexivity. apply H. apply H0.
+    + unfold compare; fold compare.
+      unfold number; simpl.
+      replace (fold_right (fun h t : Z => t * base + h) 0 tdigits0)
+      with (number base tdigits0)
+      by reflexivity.
+      replace (fold_right (fun h t : Z => t * base + h) 0 tdigits1)
+      with (number base tdigits1)
+      by reflexivity.
+      Search (_*_ = _*_).
+      rewrite (Z.mul_comm (number base tdigits0) base).
+      rewrite (Z.mul_comm (number base tdigits1) base).
+      rewrite (compare_div_mod base
+                              (number base tdigits0)
+                              (number base tdigits1)
+                              hdigits0
+                              hdigits1); try assumption.
+      inversion H0. inversion H1.
+      rewrite IHtdigits0; try assumption; reflexivity.
+      inversion H0; lia. inversion H1; lia.
+Qed.
