@@ -16,11 +16,19 @@ Proof. lia. Qed.
 Check Z.div_pos.
 
 
-Function digitize (base: Z) (n : Z) (H0: 1 < base) (H1: 0 <= n) {measure Z.abs_nat n} : list Z :=
+Function digitize (base: Z)
+                  (n : Z)
+                  (H0: 1 < base)
+                  (H1: 0 <= n)
+                  {measure Z.abs_nat n}
+         : list Z :=
   if n =? 0 then
     []
   else
-    (Z.modulo n base) :: digitize base (Z.div n base) H0 (Z.div_pos n base H1 (relax_lower_bound H0)).
+    (Z.modulo n base)
+    :: digitize base (Z.div n base)
+                H0
+                (Z.div_pos n base H1 (relax_lower_bound H0)).
 Proof.
   intros. apply (Zabs2Nat.inj_lt (n / base) n ). 
   - apply (Z.div_pos n base). apply H1. lia.
@@ -40,7 +48,10 @@ Qed.
 Locate eq.
 Compute digitize 10 153 ok1 ok0.
 
-Theorem digits_cons_inversion_head : forall h t base n H0 H1, h :: t = digitize base n H0 H1 -> h = (Z.modulo n base).
+Theorem digits_cons_inversion_head : forall
+  h t base n H0 H1,
+  h :: t = digitize base n H0 H1 ->
+  h = (Z.modulo n base).
 Proof.
   intros h t base n H0 H1. rewrite (digitize_equation base n H0 H1).
   remember (n =? 0). destruct b.
@@ -50,7 +61,8 @@ Qed.
 
 Theorem digits_cons_inversion_tail : forall h t base n H0 H1,
   h :: t = digitize base n H0 H1 ->
-  t = digitize base (Z.div n base) H0 (Z.div_pos n base H1 (relax_lower_bound H0)).
+  t = digitize base (Z.div n base)
+               H0 (Z.div_pos n base H1 (relax_lower_bound H0)).
 Proof.
   intros h t base n H0 H1. rewrite (digitize_equation base n H0 H1).
   remember (n =? 0). destruct b.
@@ -66,12 +78,15 @@ Proof.
   - apply Forall_nil.
   - apply Forall_cons.
     * rewrite (digits_cons_inversion_head a digits base n H0 H1).
-      + split. assert (0 <= n mod base). apply Z_mod_nonneg_nonneg. apply H1. lia. lia.
+      + split. assert (0 <= n mod base). apply Z_mod_nonneg_nonneg.
+        apply H1. lia. lia.
         apply Z.mod_pos_bound. lia.
       + apply H.
-    * rewrite digitize_equation in H. destruct (n =? 0). discriminate H. inversion H.
+    * rewrite digitize_equation in H. destruct (n =? 0).
+      discriminate H. inversion H.
       rewrite <- H4.
-      apply (IHdigits base (n / base) H0 (Z.div_pos n base H1 (relax_lower_bound H0))).
+      apply (IHdigits base (n / base) H0
+                      (Z.div_pos n base H1 (relax_lower_bound H0))).
       apply H4.
 Qed.
 
@@ -84,7 +99,8 @@ Qed.
 
 Check fold_right.
 
-Definition number (base : Z) (l : list Z) := fold_right (fun h t => t*base + h) 0 l.
+Definition number (base : Z) (l : list Z) :=
+  fold_right (fun h t => t*base + h) 0 l.
 
 Compute number 10 (digitize 10 153 ok1 ok0).
 Check digitize.
@@ -93,14 +109,16 @@ Theorem number_undoes_digitize : forall base n H0 H1,
   number base (digitize base n H0 H1) = n.
 Proof.
   intros; remember (digitize base n H0 H1) as digits eqn:Hdigit_list.
-  generalize dependent digits. intro digits. revert H1 H0. generalize n base.
+  generalize dependent digits. intro digits. revert H1 H0.
+  generalize n base.
   induction digits; intros.
   - simpl. rewrite digitize_equation in Hdigit_list.
     destruct (n0 =? 0) as [condition | condition] eqn:Hcondition.
     apply Z.eqb_eq. apply Hcondition. discriminate Hdigit_list.
   - simpl. rewrite (digits_cons_inversion_head a digits base0 n0 H0 H1).
     apply (digits_cons_inversion_tail a digits base0 n0 H0 H1) in Hdigit_list.
-    rewrite (IHdigits (n0 / base0) base0 (Z.div_pos n0 base0 H1 (relax_lower_bound H0)) H0).
+    rewrite (IHdigits (n0 / base0) base0
+                      (Z.div_pos n0 base0 H1 (relax_lower_bound H0)) H0).
     symmetry.
     rewrite (Z.mul_comm (n0 / base0) base0).
     apply (Z_div_mod_eq_full n0 base0). apply Hdigit_list.
@@ -129,7 +147,13 @@ Qed.
 (* Search (Type -> Type -> Type). *)
 (* Print prod. *)
 
-Definition clamp (l : list Z) := fold_right (fun h t => if andb (h =? 0) (is_empty t) then [] else h :: t) [] l.
+Definition clamp (l : list Z) :=
+  fold_right (fun h t =>
+               if andb (h =? 0) (is_empty t) then
+                 []
+               else
+                 h :: t)
+             [] l.
 
 Compute clamp [1; 2; 0; 2; 0; 0].
 
@@ -140,7 +164,8 @@ Proof.
   induction digits; intros.
   - simpl. lia.
   - simpl. inversion H. destruct H2. assert (0 <= number base digits).
-    apply IHdigits. apply H3. assert (0 <= a) by lia. assert (0 <= base) by lia.
+    apply IHdigits. apply H3. assert (0 <= a) by lia.
+    assert (0 <= base) by lia.
     assert (0 <= base * (number base digits)).
     apply Z.mul_nonneg_nonneg.
     apply H7. apply H5.
@@ -166,14 +191,18 @@ Proof.
   - intros. induction digits.
     + apply Forall_nil.
     + apply Forall_cons.
-      * simpl in H. destruct (andb (a =? 0) (is_empty (clamp digits))) as [condition | condition] eqn:Hcondition.
+      * simpl in H. destruct (andb (a =? 0) (is_empty (clamp digits)))
+        as [condition | condition] eqn:Hcondition.
         apply andb_prop in Hcondition. destruct Hcondition.
         apply Z.eqb_eq. apply H0.
         discriminate H.
       (* this could be simpler but I'm lazy *)
-      * apply IHdigits. simpl in H. destruct (andb (a =? 0) (is_empty (clamp digits))) as [condition | condition] eqn:Hcondition.
+      * apply IHdigits. simpl in H.
+        destruct (andb (a =? 0) (is_empty (clamp digits)))
+        as [condition | condition] eqn:Hcondition.
         apply andb_prop in Hcondition. destruct Hcondition.
-        destruct (is_empty_spec (clamp digits)). apply e. discriminate H1. discriminate H.
+        destruct (is_empty_spec (clamp digits)). apply e.
+        discriminate H1. discriminate H.
 Qed.
 
 Theorem digitize_clamps_number (digits : list Z) (base : Z)
@@ -189,9 +218,11 @@ Proof.
   generalize H0 H1 H1'.
   induction digits.
   - reflexivity.
-  - intros. rewrite digitize_equation. Search (Bool.reflect (_ = _) (_ =? _)).
+  - intros. rewrite digitize_equation.
+    Search (Bool.reflect (_ = _) (_ =? _)).
     destruct (Z.eqb_spec (number base (a :: digits)) 0).
-    + symmetry in e. apply (number_zero_digits_zero (a :: digits) base H2 H3) in e.
+    + symmetry in e.
+      apply (number_zero_digits_zero (a :: digits) base H2 H3) in e.
       symmetry. rewrite <- clamp_all_zeros. apply e.
     + simpl.
       inversion H1.
@@ -208,7 +239,9 @@ Proof.
         * destruct (is_empty_spec (clamp digits)).
           { simpl in n.
             destruct (Z.eqb_spec a 0).
-            { apply clamp_all_zeros in e. rewrite <- (number_zero_digits_zero digits base H0 H6) in e.
+            { apply clamp_all_zeros in e.
+              rewrite <- (number_zero_digits_zero digits base H0 H6)
+              in e.
               rewrite <- e in n.
               rewrite -> e0 in n.
               simpl in n. exfalso. apply n. reflexivity. }
@@ -243,10 +276,17 @@ Lemma compare_div_mod_eq : forall base q0 q1 r0 r1,
   0 <= r1 < base ->
   base*q0 + r0 = base*q1 + r1 <-> (q0 = q1 /\ r0 = r1).
 Proof.
-Abort.
-
-
 Search (_*_ + _ = _*_ + _).
+  intros; split; intros.
+  - apply (Z.div_mod_unique base).
+    + left. apply H0.
+    + left. apply H1.
+    + apply H2.
+  - destruct H2. rewrite H2. rewrite H3.
+    reflexivity.
+Qed.
+
+
 
 Search (Z -> Z -> comparison).
 Print Z.eqb.
@@ -279,7 +319,8 @@ Theorem compare_correct : forall base digits0 digits1,
   (1 < base) ->
   (Forall (fun d => -1 < d < base) digits0) ->
   (Forall (fun d => -1 < d < base) digits1) ->
-  (compare digits0 digits1) = (Z.compare (number base digits0) (number base digits1)).
+  (eq (compare digits0 digits1)
+      (Z.compare (number base digits0) (number base digits1))).
 Proof.
   Search Z.compare. 
 Admitted.
