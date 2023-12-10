@@ -218,14 +218,35 @@ Proof.
         * apply H6.
 Qed.
 
-Lemma compare_div_mod : forall base q0 q1 r0 r1,
+Lemma compare_div_mod_lt : forall base q0 q1 r0 r1,
   1 < base ->
   0 <= r0 < base ->
   0 <= r1 < base ->
-  base*q0 + r0 <= base*q1 + r1 <-> (q0 < q1 \/ ((q0 = q1) /\ r0 <= r1)).
+  base*q0 + r0 < base*q1 + r1 <-> (q0 < q1 \/ ((q0 = q1) /\ r0 < r1)).
 Proof.
   nia.
 Qed.
+
+
+Lemma compare_div_mod_gt : forall base q0 q1 r0 r1,
+  1 < base ->
+  0 <= r0 < base ->
+  0 <= r1 < base ->
+  base*q0 + r0 > base*q1 + r1 <-> (q0 > q1 \/ ((q0 = q1) /\ r0 > r1)).
+Proof.
+  nia.
+Qed.
+
+Lemma compare_div_mod_eq : forall base q0 q1 r0 r1,
+  1 < base ->
+  0 <= r0 < base ->
+  0 <= r1 < base ->
+  base*q0 + r0 = base*q1 + r1 <-> (q0 = q1 /\ r0 = r1).
+Proof.
+Abort.
+
+
+Search (_*_ + _ = _*_ + _).
 
 Search (Z -> Z -> comparison).
 Print Z.eqb.
@@ -235,19 +256,22 @@ Search (list _ -> bool).
 
 Fixpoint compare (l0 l1 : list Z) :=
   match l0, l1 with
-  | h0 :: t0, h1 :: t1 => match (compare t0 t1) with
-                          | Gt => Gt
-                          | Lt => Lt
-                          | Eq => (Z.compare h0 h1)
-                          end
-  | [], h1 :: t1 => if forallb (fun n => 0 =? n) (h1 :: t1) then
-                      Eq
-                    else
-                      Lt
-  | h0 :: t0, [] => if forallb (fun n => 0 =? n) (h0 :: t0) then
-                      Eq
-                    else
-                      Gt
+  | h0 :: t0, h1 :: t1 =>
+    match (compare t0 t1) with
+    | Gt => Gt
+    | Lt => Lt
+    | Eq => (Z.compare h0 h1)
+    end
+  | [], h1 :: t1 =>
+    if forallb (fun n => 0 =? n) (h1 :: t1) then
+      Eq
+    else
+      Lt
+  | h0 :: t0, [] =>
+    if forallb (fun n => 0 =? n) (h0 :: t0) then
+      Eq
+    else
+      Gt
   | [], [] => Eq
   end.
 
@@ -257,6 +281,7 @@ Theorem compare_correct : forall base digits0 digits1,
   (Forall (fun d => -1 < d < base) digits1) ->
   (compare digits0 digits1) = (Z.compare (number base digits0) (number base digits1)).
 Proof.
+  Search Z.compare. 
 Admitted.
 
 
