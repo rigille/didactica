@@ -19,6 +19,31 @@ Fixpoint permute {X : Type} (swaps : list nat) (l : list X) : list X :=
                    end
   end.
 
+Fixpoint equivalent_insert (s : list nat) (n : nat) : list nat * nat :=
+  match s with
+  | [] => ([], n)
+  | sh :: st => let (st', n') := equivalent_insert st (pred n) in
+                if sh <=? n' then
+                  (sh :: st', (S n'))
+                else
+                  ((pred sh) :: st', n')
+  end.
+
+(* Could be polymorphic if I bothered to take the hypothesis *)
+
+Definition split_extract (pos : nat) (s : list nat) : list nat * nat * list nat :=
+  let skipped := skipn pos s in
+  (firstn pos s, hd O skipped, tl skipped). 
+
+Fixpoint compose (p q : list nat) : list nat :=
+  match q with
+  | [] => p
+  | qh :: qt => let '(pf, n, ps) := split_extract qh p in
+                let (pf', n') := equivalent_insert pf n in
+                n' :: (compose (pf' ++ ps) qt)
+  end.
+
+
 Search (list ?a -> list ?a -> list ?a).
 
 Theorem permute_split : forall X n s (l : list X),
@@ -137,15 +162,6 @@ Proof.
   apply Arith_prebase.le_lt_n_Sm. apply H.
 Qed.
 
-Fixpoint equivalent_insert (s : list nat) (n : nat) : list nat * nat :=
-  match s with
-  | [] => ([], n)
-  | sh :: st => let (st', n') := equivalent_insert st (pred n) in
-                if sh <=? n' then
-                  (sh :: st', (S n'))
-                else
-                  ((pred sh) :: st', n')
-  end.
 (*
 permute (a :: b :: []) (x :: y :: h :: [])
 insert a x (insert b y (insert 0 h []))
@@ -161,44 +177,41 @@ Qed.
 
 Lemma equivalent_insert_spec : forall X (s s': list nat) (n n': nat) (h : X) (l : list X),
   valid_swaps s (length l) ->
-  le (length s)
-     n ->
-  le n
-     (length l) ->
+  le (length s) n ->
   (s', n') = equivalent_insert s n ->
   permute s (insert n h l) = insert n' h (permute s' l).
 Proof.
   induction s; intros.
-  - simpl. simpl in H2. injection H2; intros. rewrite H3.
-    rewrite H4. reflexivity.
+  - simpl. simpl in H1. injection H1; intros. rewrite H2.
+    rewrite H3. reflexivity.
   - simpl. destruct l as [|lh lt].
     + simpl in H. destruct H as [VH contra]. contradiction contra.
     + simpl. destruct n. inversion H0. simpl.
-      simpl in H2. remember (equivalent_insert s n) as eisn.
+      simpl in H1. remember (equivalent_insert s n) as eisn.
       destruct eisn as [s'' n''].
-      destruct (Nat.leb_spec a n''); injection H2; intros.
-      { rewrite H5. simpl. 
+      destruct (Nat.leb_spec a n''); injection H1; intros.
+      { rewrite H4. simpl. 
         rewrite (IHs s'' n n'').
         rewrite swap_inserts_le.
-        rewrite H4. reflexivity.
-        apply H3. simpl in H.
+        rewrite H3. reflexivity.
+        apply H2. simpl in H.
         destruct H as [HL HR].
         apply HR. apply le_S_n. apply H0.
-        apply le_S_n. apply H1. apply Heqeisn. }
-      { rewrite H5. simpl.
+        apply Heqeisn. }
+      { rewrite H4. simpl.
         rewrite (IHs s'' n n''). rewrite swap_inserts_gt.
-        rewrite H4. reflexivity.
-        apply H3. simpl in H.
+        rewrite H3. reflexivity.
+        apply H2. simpl in H.
         destruct H as [HL HR].
         apply HR. apply le_S_n.
-        apply H0. apply le_S_n.
-        apply H1. apply Heqeisn. }
+        apply H0.  apply Heqeisn. }
 Qed.
 
 (*
 permute (sh :: st) insert n h l)
+
+(firstn n l) ++ h :: (firstn (sub n' n) (skipn n l)) ++ h' :: (skip n' l)
 *)
-(* (firstn n l) ++ h :: (firstn (sub n' n) (skipn n l)) ++ h' :: (skip n' l) *)
 
 (*
 permute s (permute (sh :: st) (h :: t))
