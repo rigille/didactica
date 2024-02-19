@@ -7,7 +7,7 @@ Definition Vprog : varspecs.  mk_varspecs prog. Defined.
 
 Definition t_number := Tstruct _number noattr.
 
-Definition cdigits {CS: compspecs} (sh : Share.t) (digits : list Z) (p : val) : mpred :=
+Definition cdigits {CS : compspecs} (sh : Share.t) (digits : list Z) (p : val) : mpred :=
   data_at sh (tarray tulong (Zlength digits)) (map Vint (map Int.repr digits)) p.
 
 Definition comparison_int c : val :=
@@ -37,5 +37,8 @@ Definition number_compare_spec : ident * funspec :=
       (cdigits sh0 d0 dp0);
       data_at Ews t_number ((Vint (Int.repr (Zlength d1))), s1) dp1;
       (cdigits sh1 d1 dp1)).
+
+Definition cnumber (CS : compspecs) (sh : Share.t) (digits : list Z) (s : val) (dp : val) :=
+  data_at Ews t_number (Vint (Int.repr (Zlength digits)), s) dp.
 
 Definition Gprog : funspecs := [ number_compare_spec ].
