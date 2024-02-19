@@ -7,8 +7,14 @@ Definition Vprog : varspecs.  mk_varspecs prog. Defined.
 
 Definition t_number := Tstruct _number noattr.
 
-Definition cdigits {CS : compspecs} (sh : Share.t) (digits : list Z) (p : val) : mpred :=
-  data_at sh (tarray tulong (Zlength digits)) (map Vint (map Int.repr digits)) p.
+(* For some reason coq has trouble typechecking this if it's inlined *)
+Definition make_number (l : list Z) (v : val) : reptype t_number :=
+  ((Vint (Int.repr (Zlength l))), v).
+
+Definition cnumber {CS : compspecs} (sh : Share.t) (digit_list : list Z) (p : val) :=
+  EX digits : val,
+  data_at Ews t_number (make_number digit_list digits) p *
+  data_at sh (tarray tulong (Zlength digit_list)) (map Vint (map Int.repr digit_list)) digits.
 
 Definition comparison_int c : val :=
   match c with
@@ -19,26 +25,14 @@ Definition comparison_int c : val :=
 
 Definition number_compare_spec : ident * funspec :=
  DECLARE _number_compare
-  WITH sh0: share, sh1: share, n0 : val, s0: val, dp0 : val, d0 : list Z,
-       n1 : val, s1 : val, dp1 : val, d1 : list Z
+  WITH sh0: share, sh1: share, n0 : val, n1 : val, d0 : list Z, d1 : list Z
   PRE [ tptr t_number, tptr t_number ]
     PROP (readable_share sh0; readable_share sh1)
     PARAMS (n0; n1)
-    SEP (
-      data_at Ews t_number ((Vint (Int.repr (Zlength d0))), s0) dp0;
-      (cdigits sh0 d0 dp0);
-      data_at Ews t_number ((Vint (Int.repr (Zlength d1))), s1) dp1;
-      (cdigits sh1 d1 dp1))
+    SEP (cnumber sh0 d0 n0 * cnumber sh1 d1 n1)
   POST [ tint ]
     PROP ()
     RETURN (comparison_int (compare d0 d1))
-    SEP (
-      data_at Ews t_number ((Vint (Int.repr (Zlength d0))), s0) dp0;
-      (cdigits sh0 d0 dp0);
-      data_at Ews t_number ((Vint (Int.repr (Zlength d1))), s1) dp1;
-      (cdigits sh1 d1 dp1)).
-
-Definition cnumber (CS : compspecs) (sh : Share.t) (digits : list Z) (s : val) (dp : val) :=
-  data_at Ews t_number (Vint (Int.repr (Zlength digits)), s) dp.
+    SEP (cnumber sh0 d0 n0 * cnumber sh1 d1 n1).
 
 Definition Gprog : funspecs := [ number_compare_spec ].
