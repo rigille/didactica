@@ -65,21 +65,66 @@ Proof.
   unfold cnumber. Intros digits0 digits1.
   forward.
   forward. simpl.
-  forward_if 
-(PROP ( )
-   LOCAL (
-   temp _t'1  (Vptrofs (Ptrofs.repr (Z.max (Zlength d1) (Zlength d0))));
-   temp _t'11 (Vptrofs (Ptrofs.repr (Zlength d1)));
-   temp _t'10 (Vptrofs (Ptrofs.repr (Zlength d0))); 
-   temp _left n0; temp _right n1)
-   SEP (
-   data_at Ews struct_number (make_number d0 digits0) n0;
-   digit_array sh0 d0 digits0;
-   data_at Ews struct_number (make_number d1 digits1) n1;
-   digit_array sh1 d1 digits1)).
+  forward_if (
+    PROP ( )
+    LOCAL (
+      temp _t'1  (Vptrofs (Ptrofs.repr (Z.max (Zlength d1) (Zlength d0))));
+      temp _t'11 (Vptrofs (Ptrofs.repr (Zlength d1)));
+      temp _t'10 (Vptrofs (Ptrofs.repr (Zlength d0))); 
+      temp _left n0; temp _right n1
+    )
+    SEP (
+      data_at Ews struct_number (make_number d0 digits0) n0;
+      digit_array sh0 d0 digits0;
+      data_at Ews struct_number (make_number d1 digits1) n1;
+      digit_array sh1 d1 digits1
+    )
+  ).
   - forward; forward. entailer!. rewrite Z.max_l.
     reflexivity. lia.
   - forward; forward. entailer!. rewrite Z.max_r.
     reflexivity. lia.
-  - admit.
+  - forward. Search skipn.
+    Print sublist. Search sublist.
+    remember (Z.max (Zlength d1) (Zlength d0)) as u.
+    forward_while (
+      EX i : Z,
+      PROP (
+        0 <= i <= Int64.max_unsigned;
+        compare (sublist i u d0) (sublist i u d1) = Eq
+      )
+      LOCAL (
+        temp _i (Vptrofs (Ptrofs.repr i));
+        temp _t'1 (Vptrofs (Ptrofs.repr (Z.max (Zlength d1) (Zlength d0))));
+        temp _t'11 (Vptrofs (Ptrofs.repr (Zlength d1)));
+        temp _t'10 (Vptrofs (Ptrofs.repr (Zlength d0))); 
+        temp _left n0; temp _right n1
+      )
+      SEP (
+        data_at Ews struct_number (make_number d0 digits0) n0;
+        digit_array sh0 d0 digits0;
+        data_at Ews struct_number (make_number d1 digits1) n1;
+        digit_array sh1 d1 digits1
+      )
+    ). Exists u. entailer!. {
+      remember (Z.max (Zlength d1) (Zlength d0)) as u.
+      Search sublist. rewrite (sublist_over d1 u u).
+      rewrite (sublist_over d0 u u). reflexivity.
+      lia. lia.
+    } { entailer!. } {
+      admit.
+    } {
+      Search (Int64.repr).
+      apply (repr_inj_unsigned64 _ _ H1) in HRE.
+      subst i. assert (compare d0 d1 = Eq).
+      - Search (sublist _ _ ?a = ?a).
+        rewrite (sublist_same_gen 0 u d1) in H2; try lia.
+        rewrite (sublist_same_gen 0 u d0) in H2; try lia.
+        apply H2.
+      - forward. rewrite H3.
+        unfold cnumber.
+        Exists digits0 digits1. 
+        entailer!.
+      - lia.
+    }
 Admitted.
