@@ -2,7 +2,7 @@
   description = "Miscellaneous projects focused on good documentation and ease of understanding.";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?rev=b4fd387395d0124d936cfcde67ad08206b229b91";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=23.11";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -21,8 +21,8 @@
             # Development tools
             packages = [
               pkgs.chez-racket
-              pkgs.coq_8_16
-              pkgs.coqPackages_8_16.VST
+              pkgs.coq_8_17
+              pkgs.coqPackages_8_17.VST
               #pkgs.coqPackages.topology
             ];
 

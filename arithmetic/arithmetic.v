@@ -6,7 +6,7 @@ Local Open Scope string_scope.
 Local Open Scope clight_scope.
 
 Module Info.
-  Definition version := "3.11".
+  Definition version := "3.13".
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
@@ -74,29 +74,52 @@ Definition ___compcert_va_composite : ident := $"__compcert_va_composite".
 Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
+Definition _a : ident := $"a".
+Definition _b : ident := $"b".
+Definition _d : ident := $"d".
 Definition _digits : ident := $"digits".
 Definition _i : ident := $"i".
+Definition _j : ident := $"j".
+Definition _k : ident := $"k".
 Definition _left : ident := $"left".
 Definition _left_digit : ident := $"left_digit".
 Definition _main : ident := $"main".
+Definition _max_size_t : ident := $"max_size_t".
 Definition _number : ident := $"number".
 Definition _number_compare : ident := $"number_compare".
+Definition _number_get : ident := $"number_get".
 Definition _right : ident := $"right".
 Definition _right_digit : ident := $"right_digit".
 Definition _size : ident := $"size".
 Definition _t'1 : ident := 128%positive.
-Definition _t'10 : ident := 137%positive.
-Definition _t'11 : ident := 138%positive.
-Definition _t'12 : ident := 139%positive.
-Definition _t'13 : ident := 140%positive.
 Definition _t'2 : ident := 129%positive.
 Definition _t'3 : ident := 130%positive.
 Definition _t'4 : ident := 131%positive.
 Definition _t'5 : ident := 132%positive.
-Definition _t'6 : ident := 133%positive.
-Definition _t'7 : ident := 134%positive.
-Definition _t'8 : ident := 135%positive.
-Definition _t'9 : ident := 136%positive.
+
+Definition f_number_get := {|
+  fn_return := tulong;
+  fn_callconv := cc_default;
+  fn_params := ((_i, tulong) :: (_d, tulong) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Sreturn (Some (Econst_int (Int.repr 0) tint)))
+|}.
+
+Definition f_max_size_t := {|
+  fn_return := tulong;
+  fn_callconv := cc_default;
+  fn_params := ((_a, tulong) :: (_b, tulong) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_t'1, tulong) :: nil);
+  fn_body :=
+(Ssequence
+  (Sifthenelse (Ebinop Olt (Etempvar _a tulong) (Etempvar _b tulong) tint)
+    (Sset _t'1 (Ecast (Etempvar _b tulong) tulong))
+    (Sset _t'1 (Ecast (Etempvar _a tulong) tulong)))
+  (Sreturn (Some (Etempvar _t'1 tulong))))
+|}.
 
 Definition f_number_compare := {|
   fn_return := tint;
@@ -104,39 +127,27 @@ Definition f_number_compare := {|
   fn_params := ((_left, (tptr (Tstruct _number noattr))) ::
                 (_right, (tptr (Tstruct _number noattr))) :: nil);
   fn_vars := nil;
-  fn_temps := ((_i, tulong) :: (_left_digit, tulong) ::
-               (_right_digit, tulong) :: (_t'3, tulong) :: (_t'2, tulong) ::
-               (_t'1, tulong) :: (_t'13, tulong) :: (_t'12, tulong) ::
-               (_t'11, tulong) :: (_t'10, tulong) :: (_t'9, tulong) ::
-               (_t'8, (tptr tulong)) :: (_t'7, tulong) :: (_t'6, tulong) ::
-               (_t'5, (tptr tulong)) :: (_t'4, tulong) :: nil);
+  fn_temps := ((_i, tulong) :: (_d, tulong) :: (_left_digit, tulong) ::
+               (_right_digit, tulong) :: (_k, tulong) :: (_j, tulong) ::
+               (_t'3, tulong) :: (_t'2, tulong) :: (_t'1, tulong) ::
+               (_t'5, tulong) :: (_t'4, tulong) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Ssequence
-      (Sset _t'10
+      (Sset _t'4
         (Efield
           (Ederef (Etempvar _left (tptr (Tstruct _number noattr)))
             (Tstruct _number noattr)) _size tulong))
       (Ssequence
-        (Sset _t'11
+        (Sset _t'5
           (Efield
             (Ederef (Etempvar _right (tptr (Tstruct _number noattr)))
               (Tstruct _number noattr)) _size tulong))
-        (Sifthenelse (Ebinop Olt (Etempvar _t'10 tulong)
-                       (Etempvar _t'11 tulong) tint)
-          (Ssequence
-            (Sset _t'13
-              (Efield
-                (Ederef (Etempvar _right (tptr (Tstruct _number noattr)))
-                  (Tstruct _number noattr)) _size tulong))
-            (Sset _t'1 (Ecast (Etempvar _t'13 tulong) tulong)))
-          (Ssequence
-            (Sset _t'12
-              (Efield
-                (Ederef (Etempvar _left (tptr (Tstruct _number noattr)))
-                  (Tstruct _number noattr)) _size tulong))
-            (Sset _t'1 (Ecast (Etempvar _t'12 tulong) tulong))))))
+        (Scall (Some _t'1)
+          (Evar _max_size_t (Tfunction (Tcons tulong (Tcons tulong Tnil))
+                              tulong cc_default))
+          ((Etempvar _t'4 tulong) :: (Etempvar _t'5 tulong) :: nil))))
     (Sset _i (Etempvar _t'1 tulong)))
   (Ssequence
     (Swhile
@@ -146,61 +157,44 @@ Definition f_number_compare := {|
           (Ebinop Osub (Etempvar _i tulong) (Econst_int (Int.repr 1) tint)
             tulong))
         (Ssequence
+          (Sset _d (Ecast (Econst_int (Int.repr 0) tint) tulong))
           (Ssequence
             (Ssequence
-              (Sset _t'7
-                (Efield
-                  (Ederef (Etempvar _left (tptr (Tstruct _number noattr)))
-                    (Tstruct _number noattr)) _size tulong))
-              (Sifthenelse (Ebinop Olt (Etempvar _i tulong)
-                             (Etempvar _t'7 tulong) tint)
-                (Ssequence
-                  (Sset _t'8
-                    (Efield
-                      (Ederef
-                        (Etempvar _left (tptr (Tstruct _number noattr)))
-                        (Tstruct _number noattr)) _digits (tptr tulong)))
-                  (Ssequence
-                    (Sset _t'9
-                      (Ederef
-                        (Ebinop Oadd (Etempvar _t'8 (tptr tulong))
-                          (Etempvar _i tulong) (tptr tulong)) tulong))
-                    (Sset _t'2 (Ecast (Etempvar _t'9 tulong) tulong))))
-                (Sset _t'2 (Ecast (Econst_int (Int.repr 0) tint) tulong))))
-            (Sset _left_digit (Etempvar _t'2 tulong)))
-          (Ssequence
+              (Scall (Some _t'2)
+                (Evar _number_get (Tfunction
+                                    (Tcons tulong (Tcons tulong Tnil)) tulong
+                                    cc_default))
+                ((Etempvar _i tulong) :: (Etempvar _d tulong) :: nil))
+              (Sset _left_digit (Etempvar _t'2 tulong)))
             (Ssequence
               (Ssequence
-                (Sset _t'4
+                (Scall (Some _t'3)
+                  (Evar _number_get (Tfunction
+                                      (Tcons tulong (Tcons tulong Tnil))
+                                      tulong cc_default))
+                  ((Etempvar _i tulong) :: (Etempvar _d tulong) :: nil))
+                (Sset _right_digit (Etempvar _t'3 tulong)))
+              (Ssequence
+                (Sset _k
                   (Efield
-                    (Ederef (Etempvar _right (tptr (Tstruct _number noattr)))
+                    (Ederef (Etempvar _left (tptr (Tstruct _number noattr)))
                       (Tstruct _number noattr)) _size tulong))
-                (Sifthenelse (Ebinop Olt (Etempvar _i tulong)
-                               (Etempvar _t'4 tulong) tint)
+                (Ssequence
+                  (Sset _j
+                    (Efield
+                      (Ederef
+                        (Etempvar _right (tptr (Tstruct _number noattr)))
+                        (Tstruct _number noattr)) _size tulong))
                   (Ssequence
-                    (Sset _t'5
-                      (Efield
-                        (Ederef
-                          (Etempvar _right (tptr (Tstruct _number noattr)))
-                          (Tstruct _number noattr)) _digits (tptr tulong)))
-                    (Ssequence
-                      (Sset _t'6
-                        (Ederef
-                          (Ebinop Oadd (Etempvar _t'5 (tptr tulong))
-                            (Etempvar _i tulong) (tptr tulong)) tulong))
-                      (Sset _t'3 (Ecast (Etempvar _t'6 tulong) tulong))))
-                  (Sset _t'3 (Ecast (Econst_int (Int.repr 0) tint) tulong))))
-              (Sset _right_digit (Etempvar _t'3 tulong)))
-            (Ssequence
-              (Sifthenelse (Ebinop Olt (Etempvar _left_digit tulong)
-                             (Etempvar _right_digit tulong) tint)
-                (Sreturn (Some (Eunop Oneg (Econst_int (Int.repr 1) tint)
-                                 tint)))
-                Sskip)
-              (Sifthenelse (Ebinop Ogt (Etempvar _left_digit tulong)
-                             (Etempvar _right_digit tulong) tint)
-                (Sreturn (Some (Econst_int (Int.repr 1) tint)))
-                Sskip))))))
+                    (Sifthenelse (Ebinop Olt (Etempvar _left_digit tulong)
+                                   (Etempvar _right_digit tulong) tint)
+                      (Sreturn (Some (Eunop Oneg
+                                       (Econst_int (Int.repr 1) tint) tint)))
+                      Sskip)
+                    (Sifthenelse (Ebinop Ogt (Etempvar _left_digit tulong)
+                                   (Etempvar _right_digit tulong) tint)
+                      (Sreturn (Some (Econst_int (Int.repr 1) tint)))
+                      Sskip)))))))))
     (Sreturn (Some (Econst_int (Int.repr 0) tint)))))
 |}.
 
@@ -468,28 +462,30 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
      (Tcons tint Tnil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
+ (_number_get, Gfun(Internal f_number_get)) ::
+ (_max_size_t, Gfun(Internal f_max_size_t)) ::
  (_number_compare, Gfun(Internal f_number_compare)) :: nil).
 
 Definition public_idents : list ident :=
-(_number_compare :: ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
- ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
- ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
- ___builtin_fence :: ___builtin_expect :: ___builtin_unreachable ::
- ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
- ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
- ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
- ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
- ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
- ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
- ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
- ___builtin_bswap64 :: ___compcert_i64_umulh :: ___compcert_i64_smulh ::
- ___compcert_i64_sar :: ___compcert_i64_shr :: ___compcert_i64_shl ::
- ___compcert_i64_umod :: ___compcert_i64_smod :: ___compcert_i64_udiv ::
- ___compcert_i64_sdiv :: ___compcert_i64_utof :: ___compcert_i64_stof ::
- ___compcert_i64_utod :: ___compcert_i64_stod :: ___compcert_i64_dtou ::
- ___compcert_i64_dtos :: ___compcert_va_composite ::
- ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
- nil).
+(_number_compare :: _max_size_t :: _number_get :: ___builtin_debug ::
+ ___builtin_fmin :: ___builtin_fmax :: ___builtin_fnmsub ::
+ ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
+ ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls :: ___builtin_fence ::
+ ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
+ ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
+ ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
+ ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
+ ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
+ ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
+ ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
+ ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
+ ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
+ ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
+ ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
+ ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
+ ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
+ ___compcert_va_composite :: ___compcert_va_float64 ::
+ ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.

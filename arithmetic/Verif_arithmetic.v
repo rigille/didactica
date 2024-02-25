@@ -45,9 +45,36 @@ Definition comparison_int c : val :=
   | Gt => Vint (Int.repr 1)
   end.
 
+Definition number_get_spec : ident * funspec :=
+  DECLARE _number_get
+  WITH i : Z, default : Z
+  PRE [ tulong, tulong ]
+    PROP ()
+    PARAMS (Vptrofs (Ptrofs.repr i); (Vlong (Int64.repr default)))
+    SEP ()
+  POST [ tulong ]
+    PROP ()
+    RETURN (Vlong (Int64.repr 0))
+    SEP ().
+
+Definition max_size_t_spec : ident * funspec :=
+  DECLARE _max_size_t
+  WITH a : Z, b : Z
+  PRE [ tulong, tulong ]
+    PROP (
+      0 <= a <= Int64.max_unsigned;
+      0 <= b <= Int64.max_unsigned
+    )
+    PARAMS (Vptrofs (Ptrofs.repr a); Vptrofs (Ptrofs.repr b))
+    SEP ()
+  POST [ tulong ]
+    PROP ()
+    RETURN (Vptrofs (Ptrofs.repr (Z.max a b)))
+    SEP ().
+
 Definition number_compare_spec : ident * funspec :=
  DECLARE _number_compare
-  WITH sh0: share, sh1: share, n0 : val, n1 : val, d0 : list Z, d1 : list Z
+  WITH sh0 : share, sh1: share, n0 : val, n1 : val, d0 : list Z, d1 : list Z
   PRE [ tptr struct_number, tptr struct_number ]
     PROP (readable_share sh0; readable_share sh1)
     PARAMS (n0; n1)
@@ -57,7 +84,11 @@ Definition number_compare_spec : ident * funspec :=
     RETURN (comparison_int (compare d0 d1))
     SEP (cnumber sh0 d0 n0; cnumber sh1 d1 n1).
 
-Definition Gprog : funspecs := [ number_compare_spec ].
+Definition Gprog : funspecs := [
+  number_get_spec;
+  max_size_t_spec;
+  number_compare_spec
+].
 
 Lemma body_number_compare: semax_body Vprog Gprog f_number_compare number_compare_spec.
 Proof.
@@ -65,12 +96,16 @@ Proof.
   unfold cnumber. Intros digits0 digits1.
   forward.
   forward. simpl.
-  forward_if (
-    PROP ( )
+  forward_call. forward. deadvars!.
+  remember (Z.max (Zlength d0) (Zlength d1)) as u.
+  forward_while (
+    EX i : Z,
+    PROP (
+      0 <= i <= Int64.max_unsigned;
+      compare (sublist i u d0) (sublist i u d1) = Eq
+    )
     LOCAL (
-      temp _t'1  (Vptrofs (Ptrofs.repr (Z.max (Zlength d1) (Zlength d0))));
-      temp _t'11 (Vptrofs (Ptrofs.repr (Zlength d1)));
-      temp _t'10 (Vptrofs (Ptrofs.repr (Zlength d0))); 
+      temp _i (Vptrofs (Ptrofs.repr i));
       temp _left n0; temp _right n1
     )
     SEP (
@@ -79,46 +114,36 @@ Proof.
       data_at Ews struct_number (make_number d1 digits1) n1;
       digit_array sh1 d1 digits1
     )
-  ).
-  - forward; forward. entailer!. rewrite Z.max_l.
-    reflexivity. lia.
-  - forward; forward. entailer!. rewrite Z.max_r.
-    reflexivity. lia.
-  - forward. Search skipn.
-    Print sublist. Search sublist.
-    remember (Z.max (Zlength d1) (Zlength d0)) as u.
-    forward_while (
-      EX i : Z,
-      PROP (
-        0 <= i <= Int64.max_unsigned;
-        compare (sublist i u d0) (sublist i u d1) = Eq
-      )
-      LOCAL (
-        temp _i (Vptrofs (Ptrofs.repr i));
-        temp _t'1 (Vptrofs (Ptrofs.repr (Z.max (Zlength d1) (Zlength d0))));
-        temp _t'11 (Vptrofs (Ptrofs.repr (Zlength d1)));
-        temp _t'10 (Vptrofs (Ptrofs.repr (Zlength d0))); 
-        temp _left n0; temp _right n1
-      )
-      SEP (
-        data_at Ews struct_number (make_number d0 digits0) n0;
-        digit_array sh0 d0 digits0;
-        data_at Ews struct_number (make_number d1 digits1) n1;
-        digit_array sh1 d1 digits1
-      )
-    ). Exists u. entailer!. {
-      remember (Z.max (Zlength d1) (Zlength d0)) as u.
-      Search sublist. rewrite (sublist_over d1 u u).
-      rewrite (sublist_over d0 u u). reflexivity.
-      lia. lia.
+  ). Exists u. entailer!. {
+      remember (Z.max (Zlength d0) (Zlength d1)) as u.
+      rewrite (sublist_over d1 u u). rewrite (sublist_over d0 u u).
+      reflexivity. lia. lia.
     } { entailer!. } {
+      forward.
+      replace
+        (Vlong (Int64.sub
+                 (Ptrofs.to_int64 (Ptrofs.repr i))
+                 (Int64.repr (Int.signed (Int.repr 1)))))
+      with
+        (Vptrofs (Ptrofs.repr (i - 1)))
+      by normalize.
+      forward.
+      replace (Vlong (Int64.repr (Int.signed (Int.repr 0))))
+      with (Vlong (Int64.repr 0)) by normalize.
+      forward_call ((i - 1), 0). 
+      Search Int64.sub. normalize.
+      rewrite sub64_repr. normalize. lia.
+      simpl.
+      simpl.
+      simpl.
+      rewrite sub64_repr.
+      forward_call.
       admit.
     } {
       Search (Int64.repr).
       apply (repr_inj_unsigned64 _ _ H1) in HRE.
       subst i. assert (compare d0 d1 = Eq).
-      - Search (sublist _ _ ?a = ?a).
-        rewrite (sublist_same_gen 0 u d1) in H2; try lia.
+      - rewrite (sublist_same_gen 0 u d1) in H2; try lia.
         rewrite (sublist_same_gen 0 u d0) in H2; try lia.
         apply H2.
       - forward. rewrite H3.
