@@ -2,6 +2,8 @@ Require Import VST.floyd.proofauto.
 Require Import VST.floyd.library.
 Require Import Didactica.Main.
 Require Import Didactica.arithmetic.
+Require Import VST.veric.version.
+Print release.
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs.  mk_varspecs prog. Defined.
 
@@ -14,11 +16,15 @@ Definition make_number (l : list Z) (v : val) : reptype struct_number :=
 Definition digit_array {CS : compspecs} (sh : Share.t) (digit_list : list Z) (digits : val) := 
   data_at sh (tarray tulong (Zlength digit_list)) (map Vptrofs (map Ptrofs.repr digit_list)) digits.
 
+Arguments digit_array CS sh digit_list digits : simpl never.
+
 Definition cnumber {CS : compspecs} (sh : Share.t) (digit_list : list Z) (p : val) :=
   EX digits : val,
   !!(0 <= Zlength digit_list <= Int64.max_unsigned) &&
   data_at Ews struct_number (make_number digit_list digits) p *
   digit_array sh digit_list digits.
+
+Arguments cnumber CS sh digit_list p : simpl never.
 
 Lemma cnumber_local_facts:
   forall sh digit_list p,
@@ -45,16 +51,34 @@ Definition comparison_int c : val :=
   | Gt => Vint (Int.repr 1)
   end.
 
-Definition number_get_spec : ident * funspec :=
-  DECLARE _number_get
-  WITH i : Z, default : Z
-  PRE [ tulong, tulong ]
-    PROP ()
-    PARAMS (Vptrofs (Ptrofs.repr i); (Vlong (Int64.repr default)))
+Definition f_spec : ident * funspec :=
+  DECLARE _f
+  WITH n : val, i : Z, d : Z
+  PRE [ tptr struct_number, tulong, tulong ]
+    PROP (
+      0 <= i <= Int64.max_unsigned;
+      0 <= d <= Int64.max_unsigned
+    )
+    PARAMS (n; Vptrofs (Ptrofs.repr i); (Vlong (Int64.repr d)))
     SEP ()
   POST [ tulong ]
     PROP ()
-    RETURN (Vlong (Int64.repr 0))
+    RETURN (Vlong (Int64.repr d))
+    SEP ().
+
+Definition number_get_spec : ident * funspec :=
+  DECLARE _number_get
+  WITH n : val, i : Z, d : Z
+  PRE [ tptr struct_number, tulong, tulong ]
+    PROP (
+      0 <= i <= Int64.max_unsigned;
+      0 <= d <= Int64.max_unsigned
+    )
+    PARAMS (n; Vptrofs (Ptrofs.repr i); (Vlong (Int64.repr d)))
+    SEP ()
+  POST [ tulong ]
+    PROP ()
+    RETURN (Vlong (Int64.repr d))
     SEP ().
 
 Definition max_size_t_spec : ident * funspec :=
@@ -85,6 +109,7 @@ Definition number_compare_spec : ident * funspec :=
     SEP (cnumber sh0 d0 n0; cnumber sh1 d1 n1).
 
 Definition Gprog : funspecs := [
+  f_spec;
   number_get_spec;
   max_size_t_spec;
   number_compare_spec
@@ -127,17 +152,6 @@ Proof.
       with
         (Vptrofs (Ptrofs.repr (i - 1)))
       by normalize.
-      forward.
-      replace (Vlong (Int64.repr (Int.signed (Int.repr 0))))
-      with (Vlong (Int64.repr 0)) by normalize.
-      forward_call ((i - 1), 0). 
-      Search Int64.sub. normalize.
-      rewrite sub64_repr. normalize. lia.
-      simpl.
-      simpl.
-      simpl.
-      rewrite sub64_repr.
-      forward_call.
       admit.
     } {
       Search (Int64.repr).
