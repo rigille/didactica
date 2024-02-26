@@ -70,10 +70,7 @@ Definition number_get_spec : ident * funspec :=
   DECLARE _number_get
   WITH n : val, i : Z, d : Z
   PRE [ tptr struct_number, tulong, tulong ]
-    PROP (
-      0 <= i <= Int64.max_unsigned;
-      0 <= d <= Int64.max_unsigned
-    )
+    PROP ()
     PARAMS (n; Vptrofs (Ptrofs.repr i); (Vlong (Int64.repr d)))
     SEP ()
   POST [ tulong ]
@@ -85,10 +82,7 @@ Definition max_size_t_spec : ident * funspec :=
   DECLARE _max_size_t
   WITH a : Z, b : Z
   PRE [ tulong, tulong ]
-    PROP (
-      0 <= a <= Int64.max_unsigned;
-      0 <= b <= Int64.max_unsigned
-    )
+    PROP ()
     PARAMS (Vptrofs (Ptrofs.repr a); Vptrofs (Ptrofs.repr b))
     SEP ()
   POST [ tulong ]
@@ -152,7 +146,9 @@ Proof.
       with
         (Vptrofs (Ptrofs.repr (i - 1)))
       by normalize.
+      forward_call (n0, i - 1, 0).
       admit.
+      forward_call (n0, i - 1, 0).
     } {
       Search (Int64.repr).
       apply (repr_inj_unsigned64 _ _ H1) in HRE.

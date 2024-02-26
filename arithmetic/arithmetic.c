@@ -22,6 +22,7 @@ int number_compare(struct number* left, struct number* right) {
     size_t i = max_size_t(left->size, right->size);
     while (i != 0) {
         i -= 1;
+        uint64_t t = f(left, i, 0);
         uint64_t left_digit = number_get(left, i, 0);
         uint64_t right_digit = number_get(right, i, 0);
         if (left_digit < right_digit) {
