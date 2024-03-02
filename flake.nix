@@ -22,7 +22,14 @@
             packages = [
               pkgs.chez-racket
               pkgs.coq_8_17
-              pkgs.coqPackages_8_17.VST
+              (pkgs.coqPackages_8_17.VST.overrideAttrs (final: previous: {
+                src = pkgs.fetchFromGitHub {
+                  owner = "PrincetonUniversity";
+                  repo = "VST";
+                  rev = "50a90d516380f86710450ef597fa3e40810bb59a";
+                  sha256 = "sha256-/y9DtXIPQ9IetH5AEY/2oCQCRazTymU76MDnA9zpEyU=";
+                };
+              }))
               #pkgs.coqPackages.topology
             ];
 

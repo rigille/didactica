@@ -4,16 +4,10 @@ Import ListNotations.
 Local Open Scope list_scope.
 Local Open Scope Z_scope.
 
-Compute Z.modulo 7 2.
-
-Search id.
-Search (1 < _ -> 0 < _).
-
 
 Lemma relax_lower_bound {a : Z} (H : 1 < a) : (0 < a).
 Proof. lia. Qed.
 
-Check Z.div_pos.
 
 
 Function digitize (base: Z)
@@ -44,9 +38,6 @@ Example ok1 : 1 < 10.
 Proof.
   lia.
 Qed.
-
-Locate eq.
-Compute digitize 10 153 ok1 ok0.
 
 Theorem digits_cons_inversion_head : forall
   h t base n H0 H1,
@@ -97,13 +88,8 @@ Proof.
   apply (digits_small_aux digits base n H0 H1 Hdl).
 Qed.
 
-Check fold_right.
-
 Definition number (base : Z) (l : list Z) :=
   fold_right (fun h t => t*base + h) 0 l.
-
-Compute number 10 (digitize 10 153 ok1 ok0).
-Check digitize.
 
 Theorem number_undoes_digitize : forall base n H0 H1,
   number base (digitize base n H0 H1) = n.
@@ -126,7 +112,6 @@ Proof.
     apply (Z_div_mod_eq_full n0 base0). apply Hdigit_list.
     apply Hdigit_list.
 Qed.
-Print Z_div_mod_eq_full.
 
 Definition is_empty {X : Type} (l : list X) : bool :=
   match l with
@@ -156,8 +141,6 @@ Definition clamp (l : list Z) :=
                else
                  h :: t)
              [] l.
-
-Compute clamp [1; 2; 0; 2; 0; 0].
 
 Lemma bounded_digits_safe_to_digitize : forall digits base,
   Forall (fun d => -1 < d < base) digits ->
@@ -221,7 +204,7 @@ Proof.
   induction digits.
   - reflexivity.
   - intros. rewrite digitize_equation.
-    Search (Bool.reflect (_ = _) (_ =? _)).
+    (* Search (Bool.reflect (_ = _) (_ =? _)). *)
     destruct (Z.eqb_spec (number base (a :: digits)) 0).
     + symmetry in e.
       apply (number_zero_digits_zero (a :: digits) base H2 H3) in e.
@@ -236,7 +219,7 @@ Proof.
       assert (base > 0) by lia.
       rewrite (Z_div_plus a (number base digits) base H7).
       assert (0 <= a < base) by lia. rewrite (Z.div_small a base H8).
-      simpl. Search (?a mod ?b = ?a). rewrite (Z.mod_small a base H8).
+      simpl. (* Search (?a mod ?b = ?a). *) rewrite (Z.mod_small a base H8).
       intros. rewrite (IHdigits H6 H1''').
         * destruct (is_empty_spec (clamp digits)).
           { simpl in n.
@@ -346,8 +329,6 @@ Proof.
     apply H1.
 Qed.
 
-Search Z.compare.
-
 Lemma compare_antisym : forall digits0 digits1,
   (compare digits0 digits1) = CompOpp (compare digits1 digits0).
 Proof.
@@ -429,7 +410,7 @@ Proof.
       replace (fold_right (fun h t : Z => t * base + h) 0 tdigits1)
       with (number base tdigits1)
       by reflexivity.
-      Search (_*_ = _*_).
+      (* Search (_*_ = _*_). *)
       rewrite (Z.mul_comm (number base tdigits0) base).
       rewrite (Z.mul_comm (number base tdigits1) base).
       rewrite (compare_div_mod base

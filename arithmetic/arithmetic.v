@@ -79,7 +79,6 @@ Definition _a : ident := $"a".
 Definition _b : ident := $"b".
 Definition _d : ident := $"d".
 Definition _digits : ident := $"digits".
-Definition _f : ident := $"f".
 Definition _i : ident := $"i".
 Definition _left : ident := $"left".
 Definition _left_digit : ident := $"left_digit".
@@ -92,24 +91,11 @@ Definition _number_get : ident := $"number_get".
 Definition _right : ident := $"right".
 Definition _right_digit : ident := $"right_digit".
 Definition _size : ident := $"size".
-Definition _t : ident := $"t".
 Definition _t'1 : ident := 128%positive.
 Definition _t'2 : ident := 129%positive.
 Definition _t'3 : ident := 130%positive.
 Definition _t'4 : ident := 131%positive.
 Definition _t'5 : ident := 132%positive.
-Definition _t'6 : ident := 133%positive.
-
-Definition f_f := {|
-  fn_return := tulong;
-  fn_callconv := cc_default;
-  fn_params := ((_n, (tptr (Tstruct _number noattr))) :: (_i, tulong) ::
-                (_d, tulong) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Etempvar _d tulong)))
-|}.
 
 Definition f_number_get := {|
   fn_return := tulong;
@@ -142,27 +128,26 @@ Definition f_number_compare := {|
   fn_params := ((_left, (tptr (Tstruct _number noattr))) ::
                 (_right, (tptr (Tstruct _number noattr))) :: nil);
   fn_vars := nil;
-  fn_temps := ((_i, tulong) :: (_t, tulong) :: (_left_digit, tulong) ::
-               (_right_digit, tulong) :: (_t'4, tulong) :: (_t'3, tulong) ::
-               (_t'2, tulong) :: (_t'1, tulong) :: (_t'6, tulong) ::
-               (_t'5, tulong) :: nil);
+  fn_temps := ((_i, tulong) :: (_left_digit, tulong) ::
+               (_right_digit, tulong) :: (_t'3, tulong) :: (_t'2, tulong) ::
+               (_t'1, tulong) :: (_t'5, tulong) :: (_t'4, tulong) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Ssequence
-      (Sset _t'5
+      (Sset _t'4
         (Efield
           (Ederef (Etempvar _left (tptr (Tstruct _number noattr)))
             (Tstruct _number noattr)) _size tulong))
       (Ssequence
-        (Sset _t'6
+        (Sset _t'5
           (Efield
             (Ederef (Etempvar _right (tptr (Tstruct _number noattr)))
               (Tstruct _number noattr)) _size tulong))
         (Scall (Some _t'1)
           (Evar _max_size_t (Tfunction (Tcons tulong (Tcons tulong Tnil))
                               tulong cc_default))
-          ((Etempvar _t'5 tulong) :: (Etempvar _t'6 tulong) :: nil))))
+          ((Etempvar _t'4 tulong) :: (Etempvar _t'5 tulong) :: nil))))
     (Sset _i (Etempvar _t'1 tulong)))
   (Ssequence
     (Swhile
@@ -174,13 +159,13 @@ Definition f_number_compare := {|
         (Ssequence
           (Ssequence
             (Scall (Some _t'2)
-              (Evar _f (Tfunction
-                         (Tcons (tptr (Tstruct _number noattr))
-                           (Tcons tulong (Tcons tulong Tnil))) tulong
-                         cc_default))
+              (Evar _number_get (Tfunction
+                                  (Tcons (tptr (Tstruct _number noattr))
+                                    (Tcons tulong (Tcons tulong Tnil)))
+                                  tulong cc_default))
               ((Etempvar _left (tptr (Tstruct _number noattr))) ::
                (Etempvar _i tulong) :: (Econst_int (Int.repr 0) tint) :: nil))
-            (Sset _t (Etempvar _t'2 tulong)))
+            (Sset _left_digit (Etempvar _t'2 tulong)))
           (Ssequence
             (Ssequence
               (Scall (Some _t'3)
@@ -188,31 +173,20 @@ Definition f_number_compare := {|
                                     (Tcons (tptr (Tstruct _number noattr))
                                       (Tcons tulong (Tcons tulong Tnil)))
                                     tulong cc_default))
-                ((Etempvar _left (tptr (Tstruct _number noattr))) ::
+                ((Etempvar _right (tptr (Tstruct _number noattr))) ::
                  (Etempvar _i tulong) :: (Econst_int (Int.repr 0) tint) ::
                  nil))
-              (Sset _left_digit (Etempvar _t'3 tulong)))
+              (Sset _right_digit (Etempvar _t'3 tulong)))
             (Ssequence
-              (Ssequence
-                (Scall (Some _t'4)
-                  (Evar _number_get (Tfunction
-                                      (Tcons (tptr (Tstruct _number noattr))
-                                        (Tcons tulong (Tcons tulong Tnil)))
-                                      tulong cc_default))
-                  ((Etempvar _right (tptr (Tstruct _number noattr))) ::
-                   (Etempvar _i tulong) :: (Econst_int (Int.repr 0) tint) ::
-                   nil))
-                (Sset _right_digit (Etempvar _t'4 tulong)))
-              (Ssequence
-                (Sifthenelse (Ebinop Olt (Etempvar _left_digit tulong)
-                               (Etempvar _right_digit tulong) tint)
-                  (Sreturn (Some (Eunop Oneg (Econst_int (Int.repr 1) tint)
-                                   tint)))
-                  Sskip)
-                (Sifthenelse (Ebinop Ogt (Etempvar _left_digit tulong)
-                               (Etempvar _right_digit tulong) tint)
-                  (Sreturn (Some (Econst_int (Int.repr 1) tint)))
-                  Sskip)))))))
+              (Sifthenelse (Ebinop Olt (Etempvar _left_digit tulong)
+                             (Etempvar _right_digit tulong) tint)
+                (Sreturn (Some (Eunop Oneg (Econst_int (Int.repr 1) tint)
+                                 tint)))
+                Sskip)
+              (Sifthenelse (Ebinop Ogt (Etempvar _left_digit tulong)
+                             (Etempvar _right_digit tulong) tint)
+                (Sreturn (Some (Econst_int (Int.repr 1) tint)))
+                Sskip))))))
     (Sreturn (Some (Econst_int (Int.repr 0) tint)))))
 |}.
 
@@ -489,12 +463,12 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
      (Tcons tint Tnil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
- (_f, Gfun(Internal f_f)) :: (_number_get, Gfun(Internal f_number_get)) ::
+ (_number_get, Gfun(Internal f_number_get)) ::
  (_max_size_t, Gfun(Internal f_max_size_t)) ::
  (_number_compare, Gfun(Internal f_number_compare)) :: nil).
 
 Definition public_idents : list ident :=
-(_number_compare :: _max_size_t :: _number_get :: _f :: ___builtin_debug ::
+(_number_compare :: _max_size_t :: _number_get :: ___builtin_debug ::
  ___builtin_write32_reversed :: ___builtin_write16_reversed ::
  ___builtin_read32_reversed :: ___builtin_read16_reversed ::
  ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::

@@ -1,4 +1,4 @@
-COQMFFLAGS := -Q . Didactica  
+COQMFFLAGS := -Q . Didactica
 
 ALLVFILES := arithmetic.v Verif_arithmetic.v Main.v
 
