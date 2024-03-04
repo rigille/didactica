@@ -8,8 +8,6 @@ Local Open Scope Z_scope.
 Lemma relax_lower_bound {a : Z} (H : 1 < a) : (0 < a).
 Proof. lia. Qed.
 
-
-
 Function digitize (base: Z)
                   (n : Z)
                   (H0: 1 < base)
@@ -269,7 +267,7 @@ Proof.
     reflexivity.
 Qed.
 
-Fixpoint product_compare c0 c1 :=
+Definition product_compare c0 c1 :=
   match c0 with
   | Gt => Gt
   | Lt => Lt
@@ -284,6 +282,8 @@ Lemma compare_div_mod : forall base q0 q1 r0 r1,
       (product_compare (Z.compare q0 q1) (Z.compare r0 r1))).
 Proof.
 Admitted.
+
+Check fold_left.
 
 Fixpoint compare (l0 l1 : list Z) :=
   match l0 with

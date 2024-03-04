@@ -172,7 +172,100 @@ Proof.
   reflexivity.
 Qed.
 
-Theorem compare_backwards: forall i d0 d1,
+Lemma Znth_over: forall i (d : list Z),
+  (Zlength d) <= i ->
+  Znth i d = 0.
+Proof.
+  intros. unfold Znth. destruct (Z_lt_dec i 0).
+  Search Zlength. remember (Zlength_nonneg d) as H1.
+  lia. apply nth_overflow.
+  rewrite <- ZtoNat_Zlength.
+  lia.
+Qed.
+
+Lemma number_zeroes: forall b n,
+  number b (repeat 0 n) = 0.
+Proof.
+  induction n.
+  - reflexivity.
+  - simpl. rewrite IHn. reflexivity.
+Qed.
+
+Lemma number_app_zeroes: forall b l n,
+  number b l = number b (app l (repeat 0 n)).
+Proof.
+  intros. unfold number.
+  rewrite fold_right_app.
+  replace (fold_right (fun h t : Z => t * b + h) 0 (repeat 0 n))
+  with (number b (repeat 0 n)) by reflexivity.
+  rewrite (number_zeroes b n). reflexivity.
+Qed.
+
+Lemma compare_repeat_zero_left: forall base n l0 l1,
+  (1 < base) ->
+  (Forall (fun d => -1 < d < base) l0) ->
+  (Forall (fun d => -1 < d < base) l1) ->
+  compare l0 l1 = compare (app l0 (repeat 0 n)) l1.
+Proof.
+  intros. rewrite (compare_correct base (app l0 (repeat 0 n)));
+  try assumption. rewrite <- number_app_zeroes.
+  rewrite <- compare_correct; try assumption. reflexivity.
+  apply Forall_app. split. apply H0. induction n. apply Forall_nil.
+  simpl. apply Forall_cons. lia. apply IHn.
+Qed.
+
+Lemma Znth_repeat_zero: forall i (l : list Z) n,
+  Znth i l = Znth i (app l (repeat 0 n)).
+Proof.
+  intros. destruct (Z_lt_dec i (Zlength l)).
+  - rewrite Znth_app1. reflexivity. apply l0.
+  - rewrite Znth_app2. replace (Znth i l) with 0.
+    Check Znth_repeat.
+    assert (0 = default) by reflexivity. rewrite H.
+    rewrite (Znth_repeat n (i - Zlength l)). reflexivity.
+    Search Znth. rewrite Znth_overflow. reflexivity. lia. lia.
+Qed.
+
+Theorem compare_backwards_equal_length: forall i d0 d1,
+  Zlength d0 = Zlength d1 ->
+  let u := Zlength d0 in
+  0 < i <= Zlength d0 ->
+  let n0 := (Znth (i - 1) d0) in
+  let n1 := (Znth (i - 1) d1) in
+  (eq
+    (compare (n0 :: (sublist i u d0)) (n1 :: (sublist i u d1)))
+    (compare (sublist (i - 1) u d0) (sublist (i - 1) u d1))).
+Proof.
+  intros. Check sublist_split. rewrite (sublist_split (i - 1) i u).
+  rewrite (sublist_split (i - 1) i u).
+  remember (i - 1) as k. replace i with (k + 1) by lia.
+  rewrite (sublist_len_1 k).
+  rewrite (sublist_len_1 k). subst k. subst n0 n1.
+  reflexivity.
+  lia. lia. lia. lia. lia. lia.
+Qed.
+
+Lemma product_compare_eq : forall c,
+  product_compare c Eq = c.
+Proof.
+  destruct c; reflexivity.
+Qed.
+
+Theorem compare_l_nil : forall base l,
+  (Forall (fun d => -1 < d < base) l) ->
+  compare l [] = Eq \/
+  compare l [] = Gt.
+Proof.
+  intros. inversion H. left. reflexivity. subst. 
+  simpl. destruct (match x with | 0 => true | _ => false end && forallb (fun n : Z => match n with | 0 => true | _ => false end) l0)%bool.
+  - left. reflexivity.
+  - right. reflexivity.
+Qed.
+
+Theorem compare_backwards: forall base i d0 d1,
+  (1 < base) ->
+  (Forall (fun d => -1 < d < base) d0) ->
+  (Forall (fun d => -1 < d < base) d1) ->
   let u := Z.max (Zlength d0) (Zlength d1) in
   0 < i <= u ->
   let n0 := (Znth (i - 1) d0) in
@@ -181,22 +274,48 @@ Theorem compare_backwards: forall i d0 d1,
     (compare (n0 :: (sublist i u d0)) (n1 :: (sublist i u d1)))
     (compare (sublist (i - 1) u d0) (sublist (i - 1) u d1))).
 Proof.
-  intros.
-  rewrite (sublist_clamp_high i u d0); try lia.
-  rewrite (sublist_clamp_high (i - 1) u d0); try lia.
-  rewrite (sublist_clamp_high i u d1); try lia.
-  rewrite (sublist_clamp_high (i - 1) u d1); try lia.
-  destruct (Z_le_gt_dec (Zlength d0) (i - 1)).
-  - rewrite (sublist_over d0); try lia.
-    rewrite (sublist_over d0); try assumption.
-    destruct (Z_le_gt_dec (Zlength d1) (i - 1)).
-    lia.
-  Check sublist_split.
-    rewrite (sublist_split (i - 1) i (Zlength d1)); try lia.
-    rewrite sublist_one; try lia.
-
-    rewrite <- (sublist_suffix 0
-    Search sublist.
-    destruct (Z_le_gt_dec (Zlength d1) i).
-    + assert (i >= u) by lia.
-      
+  intros. simpl.
+  destruct (Z_lt_dec (i - 1) (Zlength d0)).
+  - rewrite (sublist_clamp_high i u d0); try lia.
+    rewrite (sublist_clamp_high (i - 1) u d0); try lia.
+    rewrite (sublist_split (i - 1) i (Zlength d0)); try lia.
+    replace i with ((i - 1) + 1) at 4 by lia.
+    rewrite (sublist_one (i - 1) _ d0); try lia.
+    destruct (Z_lt_dec (i - 1) (Zlength d1)).
+    + rewrite (sublist_clamp_high i u d1); try lia.
+      rewrite (sublist_clamp_high (i - 1) u d1); try lia.
+      rewrite (sublist_split (i - 1) i (Zlength d1)); try lia.
+      replace i with ((i - 1) + 1) at 6 by lia.
+      rewrite (sublist_one (i - 1) _ d1); try lia.
+      reflexivity.
+    + rewrite (sublist_over d1 (i - 1)); try lia.
+      rewrite (sublist_over d1 i); try lia. subst n1.
+      rewrite (Znth_over (i - 1) d1); try lia.
+      subst n0.
+      destruct (Z.compare (Znth (i - 1) d0) 0) eqn:H3.
+      * apply Z.compare_eq in H3. rewrite -> H3.
+        simpl. rewrite product_compare_eq.
+        destruct (sublist i (Zlength d0) d0); reflexivity.
+      * assert (-1 < Znth (i - 1) d0 < base).
+        apply sublist.Forall_Znth. lia. assumption.
+        destruct (Znth (i - 1) d0); try discriminate; try lia.
+      * simpl. destruct (Znth (i - 1) d0); try discriminate.
+        simpl. destruct (compare_l_nil base (sublist i (Zlength d0) d0)).
+        apply Forall_sublist. apply H0.
+        rewrite H4. reflexivity.
+        rewrite H4. reflexivity.
+  - subst n0. rewrite (sublist_over d0 (i - 1)); try lia.
+    rewrite (sublist_over d0 i); try lia. rewrite Znth_over; try lia.
+    destruct (Z_lt_dec (i - 1) (Zlength d1)).
+    + rewrite (sublist_split (i - 1) i u); try lia.
+      replace i with ((i - 1) + 1) at 3 by lia.
+      rewrite (sublist_one (i - 1) _ d1); try lia. subst n1.
+      destruct (Z.eq_decidable 0 (Znth (i - 1) d1)).
+      rewrite <- H3. simpl.
+      rewrite product_compare_eq. reflexivity.
+      simpl. destruct (Znth (i - 1) d1) eqn:H4. lia.
+      simpl. destruct (forallb (fun n0 : Z => match n0 with | 0 => true | _ => false end) (sublist i u d1)); reflexivity.
+      exfalso. Search Znth. assert (-1 < Znth (i - 1) d1 < base).
+      apply sublist.Forall_Znth. lia. assumption. lia.
+    + lia.
+Qed.
