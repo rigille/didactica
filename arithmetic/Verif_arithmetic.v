@@ -198,7 +198,7 @@ Qed.
 Theorem compare_app_suffix : forall base p0 s0 p1 s1,
   let c := compare s0 s1 in
   (Forall (fun d => -1 < d < base) (app p0 s0)) ->
-  (Forall (fun d => -1 < d < base) (app p0 s1)) ->
+  (Forall (fun d => -1 < d < base) (app p1 s1)) ->
   (eq (length p1) (length p0)) ->
   (c = Lt \/ c = Gt) ->
   (eq (compare (app p0 s0) (app p1 s1))  c).
@@ -214,6 +214,38 @@ Proof.
     apply H2.
 Qed.
 
+Theorem compare_suffix_aux : forall base i n0 n1,
+  let l0 := Zlength n0 in
+  let l1 := Zlength n1 in
+  let c := compare (sublist i l0 n0) (sublist i l1 n1) in
+  0 <= i ->
+  Zlength n0 <= Zlength n1 ->
+  (Forall (fun d => -1 < d < base) n0) ->
+  (Forall (fun d => -1 < d < base) n1) ->
+  (c = Lt \/ c = Gt) -> (compare n0 n1 = c).
+Proof.
+  intros.
+  destruct (Z_le_dec i (Zlength n0)) as [i_bound | i_bound].
+  - revert H1 H2.
+    rewrite <- sublist_same
+    with (lo := 0) (hi := l0) (al := n0); try lia.
+    rewrite <- sublist_same
+    with (lo := 0) (hi := l1) (al := n1); try lia.
+    rewrite (sublist_split 0 i _ n0); try lia.
+    rewrite (sublist_split 0 i _ n1); try lia.
+    intros.
+    rewrite compare_app_suffix with
+    (base := base) (p0 := (sublist 0 i n0))
+    (s0 := sublist i l0 n0) (p1 := (sublist 0 i n1))
+    (s1 := sublist i l1 n1). reflexivity.
+    assumption. assumption.
+    rewrite <- ZtoNat_Zlength.
+    rewrite <- ZtoNat_Zlength.
+    rewrite Zlength_sublist; try lia.
+    rewrite Zlength_sublist; try lia.
+    subst c; assumption.
+  - admit.
+Admitted.
 Theorem compare_suffix : forall base i n0 n1,
   let u := Z.max (Zlength n0) (Zlength n1) in
   let c := compare (sublist i u n0) (sublist i u n1) in
@@ -222,7 +254,7 @@ Theorem compare_suffix : forall base i n0 n1,
   (c = Lt \/ c = Gt) -> (compare n0 n1 = c).
 Proof.
   (* Fuck *)
-Qed.
+Admitted.
 
 Theorem compare_backwards: forall base i d0 d1,
   (1 < base) ->
