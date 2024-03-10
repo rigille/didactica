@@ -23,7 +23,7 @@ int number_compare(struct number* left, struct number* right) {
         if (left_digit < right_digit) {
             return -1;
         }
-        if (left_digit > right_digit) {
+        if (right_digit < left_digit) {
             return 1;
         }
     }

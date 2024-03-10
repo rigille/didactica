@@ -195,39 +195,54 @@ Proof.
   - right. reflexivity.
 Qed.
 
-Theorem compare_app_suffix : forall base p0 s0 p1 s1,
+Theorem compare_app_suffix : forall p0 s0 p1 s1,
   let c := compare s0 s1 in
-  (Forall (fun d => -1 < d < base) (app p0 s0)) ->
-  (Forall (fun d => -1 < d < base) (app p1 s1)) ->
   (eq (length p1) (length p0)) ->
   (c = Lt \/ c = Gt) ->
   (eq (compare (app p0 s0) (app p1 s1))  c).
 Proof.
   induction p0 as [ | hp0 tp0]; intros.
-  - destruct p1. reflexivity. discriminate H1.
-  - destruct p1 as [ | hp1 tp1]. discriminate H1. 
+  - destruct p1. reflexivity. discriminate H.
+  - destruct p1 as [ | hp1 tp1]. discriminate H. 
     simpl. rewrite IHtp0.
-    subst c; destruct H2; rewrite H2; reflexivity.
-    inversion H; assumption.
-    inversion H0; assumption.
-    simpl in H1. inversion H1; reflexivity.
-    apply H2.
+    subst c; destruct H0; rewrite H0; reflexivity.
+    simpl in H; inversion H; reflexivity.
+    assumption.
 Qed.
 
-Theorem compare_suffix_aux : forall base i n0 n1,
+Theorem compare_empty_app_suffix : forall p s,
+  let c := compare [] s in
+  (c = Lt \/ c = Gt) ->
+  (eq (compare [] (app p s)) c).
+Proof.
+  intros. subst c.
+  assert (forallb (fun n : Z => (0 =? n)%Z) s = false).
+  - destruct H; unfold compare in H; destruct (forallb (fun n => (0 =? n)%Z) s) eqn: Hs;
+    try discriminate H; reflexivity.
+  - assert (forall p', forallb (fun n : Z => (0 =? n)%Z) (app p' s) = false).
+    + induction p'. assumption.
+      remember (fun n : Z => (0 =? n)%Z) as is_zero. simpl. rewrite IHp'.
+      apply andb_false_r.
+    + induction p. reflexivity.
+      unfold compare. remember (fun n : Z => (0 =? n)%Z)
+      as is_zero. simpl.
+      rewrite H0. rewrite H1.
+      rewrite andb_false_r.
+      reflexivity.
+Qed.
+
+Theorem compare_suffix_aux : forall i n0 n1,
   let l0 := Zlength n0 in
   let l1 := Zlength n1 in
   let c := compare (sublist i l0 n0) (sublist i l1 n1) in
-  0 <= i ->
+  0 <= i <= l1 ->
   Zlength n0 <= Zlength n1 ->
-  (Forall (fun d => -1 < d < base) n0) ->
-  (Forall (fun d => -1 < d < base) n1) ->
   (c = Lt \/ c = Gt) -> (compare n0 n1 = c).
 Proof.
+  (* I quite like this proof, albeit it's long it's faily readable *)
   intros.
   destruct (Z_le_dec i (Zlength n0)) as [i_bound | i_bound].
-  - revert H1 H2.
-    rewrite <- sublist_same
+  - rewrite <- sublist_same
     with (lo := 0) (hi := l0) (al := n0); try lia.
     rewrite <- sublist_same
     with (lo := 0) (hi := l1) (al := n1); try lia.
@@ -235,22 +250,44 @@ Proof.
     rewrite (sublist_split 0 i _ n1); try lia.
     intros.
     rewrite compare_app_suffix with
-    (base := base) (p0 := (sublist 0 i n0))
+    (p0 := (sublist 0 i n0))
     (s0 := sublist i l0 n0) (p1 := (sublist 0 i n1))
     (s1 := sublist i l1 n1). reflexivity.
-    assumption. assumption.
     rewrite <- ZtoNat_Zlength.
     rewrite <- ZtoNat_Zlength.
     rewrite Zlength_sublist; try lia.
     rewrite Zlength_sublist; try lia.
     subst c; assumption.
-  - admit.
-Admitted.
-Theorem compare_suffix : forall base i n0 n1,
+  - rewrite <- sublist_same
+    with (lo := 0) (hi := l0) (al := n0); try lia.
+    rewrite <- sublist_same
+    with (lo := 0) (hi := l1) (al := n1); try lia.
+    subst c.
+    rewrite sublist_over with
+      (i := i) (j := l0) (l := n0) in *; try lia.
+    rewrite <- compare_empty_app_suffix with
+      (p := sublist l0 i n1) (s := sublist i l1 n1) in *; try assumption.
+    assert (0 <= l0) by list_solve.
+    assert (0 <= l1) by list_solve.
+    subst l0 l1.
+    rewrite <- sublist_split in *; try lia.
+    remember (Zlength n0) as l0.
+    remember (Zlength n1) as l1.
+    rewrite <- compare_app_suffix with
+      (p0 := sublist 0 l0 n0) (s0 := [])
+      (p1 := sublist 0 l0 n1) (s1 := (sublist l0 l1 n1));
+    try assumption.
+    rewrite <- sublist_split; try lia.
+    rewrite app_nil_r. reflexivity.
+    rewrite <- ZtoNat_Zlength.
+    rewrite <- ZtoNat_Zlength.
+    rewrite Zlength_sublist; try lia.
+    rewrite Zlength_sublist; try lia.
+Qed.
+
+Theorem compare_suffix : forall i n0 n1,
   let u := Z.max (Zlength n0) (Zlength n1) in
   let c := compare (sublist i u n0) (sublist i u n1) in
-  (Forall (fun d => -1 < d < base) n0) ->
-  (Forall (fun d => -1 < d < base) n1) ->
   (c = Lt \/ c = Gt) -> (compare n0 n1 = c).
 Proof.
   (* Fuck *)
@@ -370,22 +407,37 @@ Proof.
       assumption.
       lia.
       forward_if.
-      Search  Int64.ltu.
       apply ltu_inv64 in H6.
-      Search (Int64.unsigned (Int64.repr _)).
       rewrite Int64.unsigned_repr in H6.
       rewrite Int64.unsigned_repr in H6.
-      Search (Z.compare _ _ = Lt).
       apply Zaux.Zcompare_Lt in H6.
       simpl in H5.
       rewrite H6 in H5.
       rewrite H4 in H5.
       simpl in H5.
-      admit. admit. admit.
-      forward_if. admit.
+      forward. unfold cnumber; entailer!.
+      rewrite compare_suffix with
+       (i := i - 1).
+      rewrite <- H5. reflexivity.
+      left. symmetry. apply H5.
+      admit. admit.
+      forward_if. forward.
+      unfold cnumber; entailer!.
+      apply ltu_inv64 in H7.
+      rewrite Int64.unsigned_repr in H7.
+      rewrite Int64.unsigned_repr in H7.
+      apply Zaux.Zcompare_Lt in H7.
+      rewrite Z.compare_antisym in H7.
+      rewrite CompOpp_iff in H7; simpl in H7.
+      simpl in H5. rewrite H7 in H5.
+      rewrite H4 in H5. simpl in H5.
+      rewrite compare_suffix with (i := i - 1).
+      rewrite <- H5. reflexivity.
+      right. symmetry.
+      assumption.
+      admit. admit.
       forward. Exists (i - 1).
       entailer!.
-      Search Int64.ltu.
       apply ltu_false_inv64 in H6.
       apply ltu_false_inv64 in H7.
       admit.
