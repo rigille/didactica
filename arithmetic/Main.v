@@ -161,7 +161,22 @@ Lemma number_zero_digits_zero : forall digits base,
   0 = number base digits <->
   Forall (fun d => d = 0) digits.
 Proof.
-Admitted.
+  induction digits; intros.
+  - split; intros. apply Forall_nil.
+    reflexivity.
+  - split.
+    + simpl; intros.
+      inversion H0; subst.
+      assert (0 = number base digits) by nia.
+      rewrite <- H2 in H1. simpl in H1.
+      rewrite -> IHdigits in H2; try assumption.
+      apply Forall_cons. symmetry. apply H1. assumption.
+    + intros. inversion H1; subst.
+      simpl. assert (0 = number base digits).
+      rewrite IHdigits. apply H5.
+      assumption. inversion H0; subst; assumption.
+      lia.
+Qed.
 
 Lemma clamp_all_zeros : forall digits,
   Forall (fun d => d = 0) digits <->
@@ -281,9 +296,31 @@ Lemma compare_div_mod : forall base q0 q1 r0 r1,
   (eq (Z.compare (base*q0 + r0) (base*q1 + r1))
       (product_compare (Z.compare q0 q1) (Z.compare r0 r1))).
 Proof.
-Admitted.
-
-Check fold_left.
+  intros.
+  destruct (base * q0 + r0 ?= base * q1 + r1) eqn:EqCmp.
+  - apply Z.compare_eq in EqCmp.
+    rewrite compare_div_mod_eq in EqCmp; try lia.
+    destruct EqCmp. subst.
+    rewrite Z.compare_refl. rewrite Z.compare_refl.
+    reflexivity.
+  - rewrite Z.compare_lt_iff in EqCmp.
+    rewrite compare_div_mod_lt in EqCmp; try lia.
+    destruct EqCmp.
+    + rewrite <- Z.compare_lt_iff in H2.
+      rewrite H2. reflexivity.
+    + destruct H2. subst. rewrite Z.compare_refl.
+      rewrite <- Z.compare_lt_iff in H3.
+      rewrite H3. reflexivity.
+  - rewrite Z.compare_gt_iff in EqCmp.
+    rewrite compare_div_mod_lt in EqCmp; try lia.
+    destruct EqCmp.
+    + rewrite Z.compare_antisym. rewrite <- Z.compare_lt_iff in H2.
+      rewrite H2. reflexivity.
+    + destruct H2; subst.
+      rewrite Z.compare_refl. rewrite Z.compare_antisym.
+      rewrite <- Z.compare_lt_iff in H3.
+      rewrite H3. reflexivity.
+Qed.
 
 Fixpoint compare (l0 l1 : list Z) :=
   match l0 with

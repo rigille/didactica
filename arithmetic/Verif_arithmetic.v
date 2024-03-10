@@ -91,11 +91,18 @@ Definition Gprog : funspecs := [
   number_compare_spec
 ].
 
-Lemma sublist_clamp_high: forall {X} i u (d : list X),
+Lemma sublist_clamp_high: forall i u (d : list Z),
   Zlength d <= u ->
   sublist i u d = sublist i (Zlength d) d.
 Proof.
-Admitted.
+  intros.
+  unfold sublist.
+  rewrite firstn_same.
+  rewrite firstn_same.
+  reflexivity.
+  rewrite <- ZtoNat_Zlength. lia.
+  rewrite <- ZtoNat_Zlength. lia.
+Qed.
 
 Lemma Znth_to_nth: forall i (d : list Z),
   0 <= i ->
@@ -110,7 +117,7 @@ Lemma Znth_over: forall i (d : list Z),
   Znth i d = 0.
 Proof.
   intros. unfold Znth. destruct (Z_lt_dec i 0).
-  Search Zlength. remember (Zlength_nonneg d) as H1.
+  remember (Zlength_nonneg d) as H1.
   lia. apply nth_overflow.
   rewrite <- ZtoNat_Zlength.
   lia.
@@ -153,10 +160,9 @@ Proof.
   intros. destruct (Z_lt_dec i (Zlength l)).
   - rewrite Znth_app1. reflexivity. apply l0.
   - rewrite Znth_app2. replace (Znth i l) with 0.
-    Check Znth_repeat.
     assert (0 = default) by reflexivity. rewrite H.
     rewrite (Znth_repeat n (i - Zlength l)). reflexivity.
-    Search Znth. rewrite Znth_overflow. reflexivity. lia. lia.
+    rewrite Znth_overflow. reflexivity. lia. lia.
 Qed.
 
 Theorem compare_backwards_equal_length: forall i d0 d1,
@@ -169,7 +175,7 @@ Theorem compare_backwards_equal_length: forall i d0 d1,
     (compare (n0 :: (sublist i u d0)) (n1 :: (sublist i u d1)))
     (compare (sublist (i - 1) u d0) (sublist (i - 1) u d1))).
 Proof.
-  intros. Check sublist_split. rewrite (sublist_split (i - 1) i u).
+  intros. rewrite (sublist_split (i - 1) i u).
   rewrite (sublist_split (i - 1) i u).
   remember (i - 1) as k. replace i with (k + 1) by lia.
   rewrite (sublist_len_1 k).
@@ -288,10 +294,30 @@ Qed.
 Theorem compare_suffix : forall i n0 n1,
   let u := Z.max (Zlength n0) (Zlength n1) in
   let c := compare (sublist i u n0) (sublist i u n1) in
-  (c = Lt \/ c = Gt) -> (compare n0 n1 = c).
+  0 <= i <= u ->
+  (c = Lt \/ c = Gt) ->
+  (compare n0 n1 = c).
 Proof.
-  (* Fuck *)
-Admitted.
+  intros i n0 n1 u. rewrite sublist_clamp_high with (d := n0); try lia.
+  rewrite sublist_clamp_high with (d := n1); try lia.
+  destruct (Z_le_dec (Zlength n0) (Zlength n1)).
+  - intros. subst c; rewrite compare_suffix_aux with
+      (i := i) (n0 := n0) (n1 := n1); try assumption; try lia.
+    reflexivity.
+  - rewrite compare_antisym. rewrite compare_antisym with
+    (digits0 := n0) (digits1 := n1).
+    intros.
+    rewrite compare_suffix_aux with
+      (i := i) (n0 := n1) (n1 := n0); try assumption; try lia.
+    reflexivity.
+    destruct H0.
+    + right. subst c.
+      rewrite CompOpp_iff in H0.
+      apply H0.
+    + left. subst c.
+      rewrite CompOpp_iff in H0.
+      apply H0.
+Qed.
 
 Theorem compare_backwards: forall base i d0 d1,
   (1 < base) ->
@@ -346,10 +372,22 @@ Proof.
       rewrite product_compare_eq. reflexivity.
       simpl. destruct (Znth (i - 1) d1) eqn:H4. lia.
       simpl. destruct (forallb (fun n0 : Z => match n0 with | 0 => true | _ => false end) (sublist i u d1)); reflexivity.
-      exfalso. Search Znth. assert (-1 < Znth (i - 1) d1 < base).
+      exfalso. assert (-1 < Znth (i - 1) d1 < base).
       apply sublist.Forall_Znth. lia. assumption. lia.
     + lia.
 Qed.
+
+Lemma Znth_bounded : forall i base digits,
+  1 < base ->
+  0 <= i ->
+  Forall (fun d : Z => -1 < d < base) digits ->
+  -1 < Znth i digits < base.
+Proof.
+  intros. destruct (Z_lt_dec i (Zlength digits)).
+  - apply sublist.Forall_Znth. lia. apply H1.
+  - rewrite Znth_over. lia. lia.
+Qed.
+
 
 Lemma body_number_compare: semax_body Vprog Gprog f_number_compare number_compare_spec.
 Proof.
@@ -405,42 +443,41 @@ Proof.
       reflexivity. rep_lia.
       assumption.
       assumption.
-      lia.
-      forward_if.
-      apply ltu_inv64 in H6.
-      rewrite Int64.unsigned_repr in H6.
-      rewrite Int64.unsigned_repr in H6.
-      apply Zaux.Zcompare_Lt in H6.
-      simpl in H5.
-      rewrite H6 in H5.
-      rewrite H4 in H5.
-      simpl in H5.
+      lia. simpl in H5.
+      rewrite H4 in H5; simpl in H5.
+      assert (-1 < Znth (i - 1) d1 < Int64.max_unsigned).
+      apply Znth_bounded with
+        (i := i - 1) (base := Int64.max_unsigned)
+        (digits := d1); try rep_lia; assumption.
+      assert (-1 < Znth (i - 1) d0 < Int64.max_unsigned).
+      apply Znth_bounded with
+        (i := i - 1) (base := Int64.max_unsigned)
+        (digits := d0); try rep_lia; assumption.
+      forward_if. replace ((Znth (i - 1) d0 ?= Znth (i - 1) d1)%Z) with
+        Lt in *.
       forward. unfold cnumber; entailer!.
       rewrite compare_suffix with
-       (i := i - 1).
-      rewrite <- H5. reflexivity.
+        (i := i - 1); try lia.
+      rewrite <- H5.
+      reflexivity.
       left. symmetry. apply H5.
-      admit. admit.
-      forward_if. forward.
+      forward_if. replace ((Znth (i - 1) d0 ?= @Znth Z 0 (i - 1) d1)%Z)
+      with Gt in *. 
+      forward.
       unfold cnumber; entailer!.
-      apply ltu_inv64 in H7.
-      rewrite Int64.unsigned_repr in H7.
-      rewrite Int64.unsigned_repr in H7.
-      apply Zaux.Zcompare_Lt in H7.
-      rewrite Z.compare_antisym in H7.
-      rewrite CompOpp_iff in H7; simpl in H7.
-      simpl in H5. rewrite H7 in H5.
-      rewrite H4 in H5. simpl in H5.
-      rewrite compare_suffix with (i := i - 1).
+      rewrite compare_suffix with (i := i - 1); try lia.
       rewrite <- H5. reflexivity.
       right. symmetry.
+      assumption. rewrite Z.compare_antisym.
+      symmetry.
+      rewrite CompOpp_iff.
+      apply Zaux.Zcompare_Lt.
       assumption.
-      admit. admit.
       forward. Exists (i - 1).
       entailer!.
-      apply ltu_false_inv64 in H6.
-      apply ltu_false_inv64 in H7.
-      admit.
+      rewrite <- H5.
+      apply Zaux.Zcompare_Eq.
+      lia.
       } }
     } {
       apply repr_inj_unsigned64 in HRE; try lia.
@@ -452,4 +489,4 @@ Proof.
         unfold cnumber.
         entailer!.
     }
-Admitted.
+Qed.
