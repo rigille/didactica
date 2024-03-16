@@ -39,3 +39,13 @@ _opam/
 
 result
 
+*.vo
+*.vok
+*.vos
+*.aux
+*.glob
+Makefile.coq
+Makefile.coq.conf
+*.d
+
+.ccls_cache
