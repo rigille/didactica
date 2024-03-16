@@ -97,7 +97,7 @@ Proof.
   generalize n base.
   induction digits; intros.
   - simpl. rewrite digitize_equation in Hdigit_list.
-    destruct (n0 =? 0) as [condition | condition] eqn:Hcondition.
+    destruct (n0 =? 0) eqn:Hcondition.
     apply Z.eqb_eq. apply Hcondition. discriminate Hdigit_list.
   - simpl. rewrite
     (digits_cons_inversion_head a digits base0 n0 H0 H1).
@@ -190,14 +190,14 @@ Proof.
     + apply Forall_nil.
     + apply Forall_cons.
       * simpl in H. destruct (andb (a =? 0) (is_empty (clamp digits)))
-        as [condition | condition] eqn:Hcondition.
+        eqn:Hcondition.
         apply andb_prop in Hcondition. destruct Hcondition.
         apply Z.eqb_eq. apply H0.
         discriminate H.
       (* this could be simpler but I'm lazy *)
       * apply IHdigits. simpl in H.
         destruct (andb (a =? 0) (is_empty (clamp digits)))
-        as [condition | condition] eqn:Hcondition.
+        eqn:Hcondition.
         apply andb_prop in Hcondition. destruct Hcondition.
         destruct (is_empty_spec (clamp digits)). apply e.
         discriminate H1. discriminate H.
