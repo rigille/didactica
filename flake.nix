@@ -32,6 +32,9 @@
               }))
               #pkgs.coqPackages.topology
             ];
+            shellHook = ''
+                export SYSTEM=${system}
+            '';
 
             # Tools from packages
             inputsFrom = [

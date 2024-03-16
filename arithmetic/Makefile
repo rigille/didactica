@@ -1,17 +1,22 @@
-COQMFFLAGS := -Q . Didactica
+.PHONY: c coq all c_clean coq_clean clean
 
-ALLVFILES := arithmetic.v Verif_arithmetic.v Main.v
+# Target to run make in both folders
+all: c coq
 
-build: Makefile.coq
-	$(MAKE) -f Makefile.coq
+# Target to run make in folder1
+c:
+	$(MAKE) -C c
 
-clean::
-	if [ -e Makefile.coq ]; then $(MAKE) -f Makefile.coq cleanall; fi
-	$(RM) $(wildcard Makefile.coq Makefile.coq.conf) 
+# Target to run make in folder2
+coq:
+	$(MAKE) -C coq
 
-Makefile.coq:
-	coq_makefile $(COQMFFLAGS) -o Makefile.coq $(ALLVFILES)
+# Target to run make in folder1
+c_clean:
+	$(MAKE) -C c clean
 
--include Makefile.coq
+# Target to run make in folder2
+coq_clean:
+	$(MAKE) -C coq clean
 
-.PHONY: build clean
+clean: c_clean coq_clean
