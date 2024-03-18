@@ -48,4 +48,4 @@ Makefile.coq
 Makefile.coq.conf
 *.d
 
-.ccls_cache
+.ccls-cache/
