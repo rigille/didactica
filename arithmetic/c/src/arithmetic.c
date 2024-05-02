@@ -29,3 +29,18 @@ int number_compare(struct number* left, struct number* right) {
     }
     return 0;
 }
+void number_add(
+    struct number* left,
+    struct number* right,
+    struct number* target
+) {
+    size_t i = max_size_t(left->size, right->size);
+    uint64_t carry = 0;
+    for (size_t j = 0; j < i; j++) {
+        uint64_t left_digit = number_get(left, j);
+        uint64_t right_digit = number_get(right, j);
+        uint64_t temporary = left_digit + carry;
+        target[j] = temporary + right_digit;
+        carry = (temporary < carry) +
+                (target[j] < right_digit);
+}
