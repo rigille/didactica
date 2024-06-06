@@ -43,4 +43,5 @@ void number_add(
         target[j] = temporary + right_digit;
         carry = (temporary < carry) +
                 (target[j] < right_digit);
+    }
 }
