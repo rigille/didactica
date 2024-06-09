@@ -1,4 +1,4 @@
-Require Import BinInt List Lia.
+Require Import BinInt List Lia ZArith.
 Import ListNotations.
 (* Require Import Didactica.Main. *)
 Local Open Scope Z_scope.
@@ -72,44 +72,88 @@ Proof.
   lia.
 Qed.
 
-Theorem possible_remainders : forall base a b,
+(*
+Theorem overflow_check : forall base a b,
   0 <= a < base ->
   0 <= b < base ->
   let remainder := (Z.modulo (a + b) base) in
-  (remainder = a + b) \/ (remainder = a + b - base).
+  (eq
+    remainder
+    (if Z.ltb remainder a then
+      (a + b - base)
+    else
+      (a + b))).
+Proof.
+  intros. subst remainder.
+  rewrite (possible_remainders base a b H H0).
+  destruct (Z.ltb (a + b) base) eqn:Bound. {
+    replace (Z.ltb (a + b) a) with false by lia.
+    reflexivity.
+  } {
+    replace (Z.ltb (a + b - base) a) with true by lia.
+    reflexivity.
+  }
+Qed.
+*)
+
+Theorem possible_remainders : forall base a b,
+  0 <= a < base ->
+  0 <= b < base ->
+  (eq
+    (Z.modulo (a + b) base)
+    (if Z.ltb (a + b) base then 
+      (a + b)
+    else
+      (a + b - base))).
 Proof.
   intros.
   assert (0 <= a + b < 2*base) by lia.
-  destruct (Z.lt_ge_cases (a + b) base).
-  - left. (* Search (?a mod _ = ?a). *)
-    apply Z.mod_small. lia.
-  - right.
-    assert (0 <= a + b - base < base) by lia.
-    subst remainder.
+  destruct (Z.ltb (a + b) base) eqn:Bound.
+  - apply Z.mod_small. lia.
+  - assert (0 <= a + b - base < base) by lia.
     rewrite <- (Z.mod_add (a + b) (-1) base ltac:(lia)).
     replace (a + b + (-1 * base)) with
             (a + b - base) by lia.
     apply Z.mod_small. assumption.
 Qed.
 
-Theorem overflow_check : forall base a b,
-  0 <= a < base ->
-  0 <= b < base ->
-  let remainder := (Z.modulo (a + b) base) in
-  if Z.ltb remainder a then
-    remainder = a + b - base
-  else
-    remainder = a + b.
+Theorem full_adder_spec :
+  forall base carry n m,
+  1 < base ->
+  0 <= n < base ->
+  0 <= m < base ->
+  let (next_carry, result) := full_adder base carry n m in
+  (eq
+    (n + m + bool_to_Z carry)
+    (base*(bool_to_Z next_carry) + result)).
 Proof.
-  intros.
-  destruct (possible_remainders base a b H H0). {
-    subst remainder. rewrite H1.
-    replace (a + b <? a) with false by lia.
-    reflexivity.
+  intros base carry n m BaseBig NBound MBound.
+  unfold full_adder.
+  remember (bool_to_Z carry) as c eqn:CDefinition.
+  assert (0 <= c <= 1) by (destruct carry; subst c; simpl; lia).
+  remember (Z.modulo (c + n) base)
+    as remainder eqn:RemainderDefinition.
+  rewrite (possible_remainders base c n ltac:(lia) NBound)
+    in RemainderDefinition.
+  destruct (Z.ltb (Z.add c n) base) eqn:OverflowCheck0. {
+    replace (Z.ltb remainder c) with false by lia.
+    simpl.
+    rewrite (possible_remainders base remainder m ltac:(lia) MBound).
+    destruct (Z.ltb (Z.add remainder m) base). {
+      replace (Z.ltb (Z.add remainder m) m) with false by lia.
+      simpl. subst remainder. lia.
+    } {
+      replace (Z.ltb (remainder + m - base) m) with true by lia.
+      simpl. subst remainder. lia.
+    }
   } {
-    subst remainder. rewrite H1.
-    replace (a + b - base <? a) with true by lia.
-    reflexivity.
+    replace (Z.ltb remainder c) with true by lia. simpl.
+    rewrite (possible_remainders base remainder m ltac:(lia) MBound).
+    destruct (Z.ltb (Z.add remainder m) base) eqn:OverflowCheck2. {
+      subst remainder. lia.
+    } {
+      exfalso. lia.
+    }
   }
 Qed.
 
@@ -120,32 +164,27 @@ Theorem full_adder_adds :
   0 <= r1 < base ->
   let c := bool_to_Z carry in
   let (next_carry, result) := full_adder base carry r0 r1 in
-  (eq ((base*q0 + r0) + (base*q1 + r1) + c)
-      (base*(q0 + q1 + (bool_to_Z next_carry)) + result)).
+  (eq
+    ((base*q0 + r0) + (base*q1 + r1) + c)
+    (base*(q0 + q1 + (bool_to_Z next_carry)) + result)).
 Proof.
-  intros.
-  transitivity (base*(q0 + q1) + r0 + r1 + c). lia.
-  replace (bool_to_Z carry) with c by reflexivity.
-  remember ((c + r0) mod base) as temporary.
-  remember ((temporary + r1) mod base) as result.
-  assert (0 <= c <= 1) by (subst c; destruct carry; simpl; lia).
-  (* Search ((Z.lt ?a ?b) \/ _). *)
-  destruct (Z.lt_ge_cases temporary c);
-  destruct (Z.lt_ge_cases result r1).
-  - (* two overflows are impossible *)
-    replace (Z.ltb temporary c) with true by lia.
-    replace (Z.ltb result r1) with true by lia.
-    simpl.
-    admit.
-  - admit.
-  - admit.
-  - (* no overflows *)
-    replace (temporary <? c) with false by lia.
-    replace (result <? r1) with false by lia.
-    simpl.
-    assert (c + r0 < base). {
-      admit.
+  intros base carry r0 q0 r1 q1 BaseBig R0Bound
+    R1Bound c.
+  destruct (full_adder base carry r0 r1) as [next_carry result]
+    eqn:FullAdderInvocation.
+  transitivity (base*(q0 + q1) + (r0 + r1 + c)). {
+    lia.
+  } {
+    subst c.
+    replace 
+      (r0 + r1 + bool_to_Z carry)
+    with
+      (base*(bool_to_Z next_carry) + result). {
+      lia.
+    } {
+      rewrite full_adder_spec with (base:=base); try assumption.
+      unfold full_adder in FullAdderInvocation.
+      inversion FullAdderInvocation; reflexivity.
     }
-Admitted.
-
-Compute (add 10%Z [9; 9; 2] [1]).
+  }
+Qed.
