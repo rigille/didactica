@@ -2,7 +2,7 @@
   description = "Miscellaneous projects focused on good documentation and ease of understanding.";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?ref=23.11";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=24.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -20,6 +20,8 @@
           default = pkgs.mkShell {
             # Development tools
             packages = [
+              pkgs.gcc14
+              pkgs.clang
               pkgs.chez-racket
               pkgs.coq_8_17
               (pkgs.coqPackages_8_17.VST.overrideAttrs (final: previous: {
