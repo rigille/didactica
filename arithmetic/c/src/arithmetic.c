@@ -31,6 +31,7 @@ int number_compare(struct number* left, struct number* right) {
 }
 
 #ifdef __GNUC__ // gcc and clang use a builtin
+                // TODO: add that ugly implementation for gcc < 14
 inline uint64_t add_with_carry(
     uint64_t left_digit, uint64_t right_digit,
     uint64_t carry_in, uint64_t* carry_out
@@ -45,7 +46,7 @@ inline uint64_t add_with_carry(
       // it's for sure inefficient because Clang would
       // optimize this just as well as the builtin.
       // Compcert needs this intrinsic...
-      // I should make a PR someday
+      // I should make a PR someday...
 inline uint64_t add_with_carry(
     uint64_t left_digit, uint64_t right_digit,
     uint64_t carry_in, uint64_t* carry_out
