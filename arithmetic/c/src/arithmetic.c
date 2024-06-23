@@ -75,3 +75,24 @@ void number_add_inner(
         target->digits[j] = result;
     }
 }
+
+void number_multiply_inner(
+    struct number* left,
+    struct number* right,
+    struct number* target
+) {
+    uint32_t* left_digits = (uint32_t*)left->digits;
+    uint32_t* right_digits = (uint32_t*)right->digits;
+    uint32_t* target_digits = (uint32_t*)target->digits;
+    for (size_t i = 0; i < 2*left->size; i++) {
+        uint64_t left_digit = (uint64_t)left_digits[i];
+        uint64_t result = 0;
+        for (size_t j = 0; j < 2*right->size; j++) {
+            uint64_t right_digit = (uint64_t)right_digits[i];
+            result += (uint64_t)target_digits[i+j];
+            result += left_digit*right_digit;
+            target_digits[i+j] = (uint32_t)result;
+            result = result >> 32;
+        }
+    }
+}
