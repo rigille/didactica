@@ -45,8 +45,7 @@ inline uint64_t add_with_carry(
       // inefficient implementation. I don't say
       // it's for sure inefficient because Clang would
       // optimize this just as well as the builtin.
-      // Compcert needs this intrinsic...
-      // I should make a PR someday...
+      // Compcert would benefit from this intrinsic
 inline uint64_t add_with_carry(
     uint64_t left_digit, uint64_t right_digit,
     uint64_t carry_in, uint64_t* carry_out
