@@ -15,7 +15,7 @@ Module Info.
   Definition abi := "apple".
   Definition bitsize := 64.
   Definition big_endian := false.
-  Definition source_file := "arithmetic.c".
+  Definition source_file := "c/src/arithmetic.c".
   Definition normalized := true.
 End Info.
 
@@ -75,25 +75,41 @@ Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition _a : ident := $"a".
+Definition _add_with_carry : ident := $"add_with_carry".
 Definition _b : ident := $"b".
+Definition _carry : ident := $"carry".
+Definition _carry_in : ident := $"carry_in".
+Definition _carry_out : ident := $"carry_out".
 Definition _digits : ident := $"digits".
 Definition _i : ident := $"i".
+Definition _j : ident := $"j".
 Definition _left : ident := $"left".
 Definition _left_digit : ident := $"left_digit".
+Definition _left_digits : ident := $"left_digits".
 Definition _main : ident := $"main".
 Definition _max_size_t : ident := $"max_size_t".
 Definition _n : ident := $"n".
 Definition _number : ident := $"number".
+Definition _number_add_inner : ident := $"number_add_inner".
 Definition _number_compare : ident := $"number_compare".
 Definition _number_get : ident := $"number_get".
+Definition _number_multiply_inner : ident := $"number_multiply_inner".
+Definition _result : ident := $"result".
 Definition _right : ident := $"right".
 Definition _right_digit : ident := $"right_digit".
+Definition _right_digits : ident := $"right_digits".
 Definition _size : ident := $"size".
+Definition _target : ident := $"target".
+Definition _target_digits : ident := $"target_digits".
+Definition _temporary : ident := $"temporary".
 Definition _t'1 : ident := 128%positive.
 Definition _t'2 : ident := 129%positive.
 Definition _t'3 : ident := 130%positive.
 Definition _t'4 : ident := 131%positive.
 Definition _t'5 : ident := 132%positive.
+Definition _t'6 : ident := 133%positive.
+Definition _t'7 : ident := 134%positive.
+Definition _t'8 : ident := 135%positive.
 
 Definition f_number_get := {|
   fn_return := tulong;
@@ -204,6 +220,248 @@ Definition f_number_compare := {|
                 (Sreturn (Some (Econst_int (Int.repr 1) tint)))
                 Sskip))))))
     (Sreturn (Some (Econst_int (Int.repr 0) tint)))))
+|}.
+
+Definition f_add_with_carry := {|
+  fn_return := tulong;
+  fn_callconv := cc_default;
+  fn_params := ((_left_digit, tulong) :: (_right_digit, tulong) ::
+                (_carry_in, tulong) :: (_carry_out, (tptr tulong)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_temporary, tulong) :: (_result, tulong) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset _temporary
+    (Ebinop Oadd (Etempvar _left_digit tulong) (Etempvar _carry_in tulong)
+      tulong))
+  (Ssequence
+    (Sset _result
+      (Ebinop Oadd (Etempvar _temporary tulong)
+        (Etempvar _right_digit tulong) tulong))
+    (Ssequence
+      (Sassign (Ederef (Etempvar _carry_out (tptr tulong)) tulong)
+        (Ebinop Oadd
+          (Ebinop Olt (Etempvar _temporary tulong)
+            (Etempvar _carry_in tulong) tint)
+          (Ebinop Olt (Etempvar _result tulong)
+            (Etempvar _right_digit tulong) tint) tint))
+      (Sreturn (Some (Etempvar _result tulong))))))
+|}.
+
+Definition f_number_add_inner := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := ((_left, (tptr (Tstruct _number noattr))) ::
+                (_right, (tptr (Tstruct _number noattr))) ::
+                (_target, (tptr (Tstruct _number noattr))) :: nil);
+  fn_vars := ((_carry, tulong) :: nil);
+  fn_temps := ((_i, tulong) :: (_j, tulong) :: (_left_digit, tulong) ::
+               (_right_digit, tulong) :: (_result, tulong) ::
+               (_t'4, tulong) :: (_t'3, tulong) :: (_t'2, tulong) ::
+               (_t'1, tulong) :: (_t'8, tulong) :: (_t'7, tulong) ::
+               (_t'6, tulong) :: (_t'5, (tptr tulong)) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Ssequence
+      (Sset _t'7
+        (Efield
+          (Ederef (Etempvar _left (tptr (Tstruct _number noattr)))
+            (Tstruct _number noattr)) _size tulong))
+      (Ssequence
+        (Sset _t'8
+          (Efield
+            (Ederef (Etempvar _right (tptr (Tstruct _number noattr)))
+              (Tstruct _number noattr)) _size tulong))
+        (Scall (Some _t'1)
+          (Evar _max_size_t (Tfunction (Tcons tulong (Tcons tulong Tnil))
+                              tulong cc_default))
+          ((Etempvar _t'7 tulong) :: (Etempvar _t'8 tulong) :: nil))))
+    (Sset _i (Etempvar _t'1 tulong)))
+  (Ssequence
+    (Sassign (Evar _carry tulong) (Econst_int (Int.repr 0) tint))
+    (Ssequence
+      (Sset _j (Ecast (Econst_int (Int.repr 0) tint) tulong))
+      (Sloop
+        (Ssequence
+          (Sifthenelse (Ebinop Olt (Etempvar _j tulong) (Etempvar _i tulong)
+                         tint)
+            Sskip
+            Sbreak)
+          (Ssequence
+            (Ssequence
+              (Scall (Some _t'2)
+                (Evar _number_get (Tfunction
+                                    (Tcons (tptr (Tstruct _number noattr))
+                                      (Tcons tulong Tnil)) tulong cc_default))
+                ((Etempvar _left (tptr (Tstruct _number noattr))) ::
+                 (Etempvar _j tulong) :: nil))
+              (Sset _left_digit (Etempvar _t'2 tulong)))
+            (Ssequence
+              (Ssequence
+                (Scall (Some _t'3)
+                  (Evar _number_get (Tfunction
+                                      (Tcons (tptr (Tstruct _number noattr))
+                                        (Tcons tulong Tnil)) tulong
+                                      cc_default))
+                  ((Etempvar _right (tptr (Tstruct _number noattr))) ::
+                   (Etempvar _j tulong) :: nil))
+                (Sset _right_digit (Etempvar _t'3 tulong)))
+              (Ssequence
+                (Ssequence
+                  (Ssequence
+                    (Sset _t'6 (Evar _carry tulong))
+                    (Scall (Some _t'4)
+                      (Evar _add_with_carry (Tfunction
+                                              (Tcons tulong
+                                                (Tcons tulong
+                                                  (Tcons tulong
+                                                    (Tcons (tptr tulong)
+                                                      Tnil)))) tulong
+                                              cc_default))
+                      ((Etempvar _left_digit tulong) ::
+                       (Etempvar _right_digit tulong) ::
+                       (Etempvar _t'6 tulong) ::
+                       (Eaddrof (Evar _carry tulong) (tptr tulong)) :: nil)))
+                  (Sset _result (Etempvar _t'4 tulong)))
+                (Ssequence
+                  (Sset _t'5
+                    (Efield
+                      (Ederef
+                        (Etempvar _target (tptr (Tstruct _number noattr)))
+                        (Tstruct _number noattr)) _digits (tptr tulong)))
+                  (Sassign
+                    (Ederef
+                      (Ebinop Oadd (Etempvar _t'5 (tptr tulong))
+                        (Etempvar _j tulong) (tptr tulong)) tulong)
+                    (Etempvar _result tulong)))))))
+        (Sset _j
+          (Ebinop Oadd (Etempvar _j tulong) (Econst_int (Int.repr 1) tint)
+            tulong))))))
+|}.
+
+Definition f_number_multiply_inner := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := ((_left, (tptr (Tstruct _number noattr))) ::
+                (_right, (tptr (Tstruct _number noattr))) ::
+                (_target, (tptr (Tstruct _number noattr))) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_left_digits, (tptr tuint)) ::
+               (_right_digits, (tptr tuint)) ::
+               (_target_digits, (tptr tuint)) :: (_i, tulong) ::
+               (_left_digit, tulong) :: (_result, tulong) :: (_j, tulong) ::
+               (_right_digit, tulong) :: (_t'8, (tptr tulong)) ::
+               (_t'7, (tptr tulong)) :: (_t'6, (tptr tulong)) ::
+               (_t'5, tulong) :: (_t'4, tuint) :: (_t'3, tulong) ::
+               (_t'2, tuint) :: (_t'1, tuint) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _t'8
+      (Efield
+        (Ederef (Etempvar _left (tptr (Tstruct _number noattr)))
+          (Tstruct _number noattr)) _digits (tptr tulong)))
+    (Sset _left_digits (Ecast (Etempvar _t'8 (tptr tulong)) (tptr tuint))))
+  (Ssequence
+    (Ssequence
+      (Sset _t'7
+        (Efield
+          (Ederef (Etempvar _right (tptr (Tstruct _number noattr)))
+            (Tstruct _number noattr)) _digits (tptr tulong)))
+      (Sset _right_digits (Ecast (Etempvar _t'7 (tptr tulong)) (tptr tuint))))
+    (Ssequence
+      (Ssequence
+        (Sset _t'6
+          (Efield
+            (Ederef (Etempvar _target (tptr (Tstruct _number noattr)))
+              (Tstruct _number noattr)) _digits (tptr tulong)))
+        (Sset _target_digits
+          (Ecast (Etempvar _t'6 (tptr tulong)) (tptr tuint))))
+      (Ssequence
+        (Sset _i (Ecast (Econst_int (Int.repr 0) tint) tulong))
+        (Sloop
+          (Ssequence
+            (Ssequence
+              (Sset _t'5
+                (Efield
+                  (Ederef (Etempvar _left (tptr (Tstruct _number noattr)))
+                    (Tstruct _number noattr)) _size tulong))
+              (Sifthenelse (Ebinop Olt (Etempvar _i tulong)
+                             (Ebinop Omul (Econst_int (Int.repr 2) tint)
+                               (Etempvar _t'5 tulong) tulong) tint)
+                Sskip
+                Sbreak))
+            (Ssequence
+              (Ssequence
+                (Sset _t'4
+                  (Ederef
+                    (Ebinop Oadd (Etempvar _left_digits (tptr tuint))
+                      (Etempvar _i tulong) (tptr tuint)) tuint))
+                (Sset _left_digit (Ecast (Etempvar _t'4 tuint) tulong)))
+              (Ssequence
+                (Sset _result (Ecast (Econst_int (Int.repr 0) tint) tulong))
+                (Ssequence
+                  (Sset _j (Ecast (Econst_int (Int.repr 0) tint) tulong))
+                  (Sloop
+                    (Ssequence
+                      (Ssequence
+                        (Sset _t'3
+                          (Efield
+                            (Ederef
+                              (Etempvar _right (tptr (Tstruct _number noattr)))
+                              (Tstruct _number noattr)) _size tulong))
+                        (Sifthenelse (Ebinop Olt (Etempvar _j tulong)
+                                       (Ebinop Omul
+                                         (Econst_int (Int.repr 2) tint)
+                                         (Etempvar _t'3 tulong) tulong) tint)
+                          Sskip
+                          Sbreak))
+                      (Ssequence
+                        (Ssequence
+                          (Sset _t'2
+                            (Ederef
+                              (Ebinop Oadd
+                                (Etempvar _right_digits (tptr tuint))
+                                (Etempvar _i tulong) (tptr tuint)) tuint))
+                          (Sset _right_digit
+                            (Ecast (Etempvar _t'2 tuint) tulong)))
+                        (Ssequence
+                          (Ssequence
+                            (Sset _t'1
+                              (Ederef
+                                (Ebinop Oadd
+                                  (Etempvar _target_digits (tptr tuint))
+                                  (Ebinop Oadd (Etempvar _i tulong)
+                                    (Etempvar _j tulong) tulong)
+                                  (tptr tuint)) tuint))
+                            (Sset _result
+                              (Ebinop Oadd (Etempvar _result tulong)
+                                (Ecast (Etempvar _t'1 tuint) tulong) tulong)))
+                          (Ssequence
+                            (Sset _result
+                              (Ebinop Oadd (Etempvar _result tulong)
+                                (Ebinop Omul (Etempvar _left_digit tulong)
+                                  (Etempvar _right_digit tulong) tulong)
+                                tulong))
+                            (Ssequence
+                              (Sassign
+                                (Ederef
+                                  (Ebinop Oadd
+                                    (Etempvar _target_digits (tptr tuint))
+                                    (Ebinop Oadd (Etempvar _i tulong)
+                                      (Etempvar _j tulong) tulong)
+                                    (tptr tuint)) tuint)
+                                (Ecast (Etempvar _result tulong) tuint))
+                              (Sset _result
+                                (Ebinop Oshr (Etempvar _result tulong)
+                                  (Econst_int (Int.repr 32) tint) tulong)))))))
+                    (Sset _j
+                      (Ebinop Oadd (Etempvar _j tulong)
+                        (Econst_int (Int.repr 1) tint) tulong)))))))
+          (Sset _i
+            (Ebinop Oadd (Etempvar _i tulong) (Econst_int (Int.repr 1) tint)
+              tulong)))))))
 |}.
 
 Definition composites : list composite_definition :=
@@ -472,10 +730,14 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (_number_get, Gfun(Internal f_number_get)) ::
  (_max_size_t, Gfun(Internal f_max_size_t)) ::
- (_number_compare, Gfun(Internal f_number_compare)) :: nil).
+ (_number_compare, Gfun(Internal f_number_compare)) ::
+ (_add_with_carry, Gfun(Internal f_add_with_carry)) ::
+ (_number_add_inner, Gfun(Internal f_number_add_inner)) ::
+ (_number_multiply_inner, Gfun(Internal f_number_multiply_inner)) :: nil).
 
 Definition public_idents : list ident :=
-(_number_compare :: _max_size_t :: _number_get :: ___builtin_debug ::
+(_number_multiply_inner :: _number_add_inner :: _add_with_carry ::
+ _number_compare :: _max_size_t :: _number_get :: ___builtin_debug ::
  ___builtin_fmin :: ___builtin_fmax :: ___builtin_fnmsub ::
  ___builtin_fnmadd :: ___builtin_fmsub :: ___builtin_fmadd ::
  ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls :: ___builtin_fence ::

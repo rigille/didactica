@@ -28,15 +28,6 @@ Proof.
   - apply (Z.div_lt n base). lia. apply H0.
 Defined.
 
-Example ok0 : 0 <= 153.
-Proof.
-  lia.
-Qed.
-Example ok1 : 1 < 10.
-Proof.
-  lia.
-Qed.
-
 Theorem digits_cons_inversion_head : forall
   h t base n H0 H1,
   h :: t = digitize base n H0 H1 ->
@@ -459,3 +450,16 @@ Proof.
       rewrite IHtdigits0; try assumption; reflexivity.
       inversion H0; lia. inversion H1; lia.
 Qed.
+
+Fixpoint add_aux (base carry : Z) (d0 d1 : list Z) : list Z :=
+  match d0 with
+  | [] => d1
+  | h0 :: t0 => match d1 with
+                | [] => h0 :: t0
+                | h1 :: t1 => let h' := (carry + h0 + h1) mod base in
+                              if h' <=? h0 then
+                                  h' :: (add_aux base 1 t0 t1)
+                              else
+                                  h' :: (add_aux base 0 t0 t1)
+                end
+  end.
