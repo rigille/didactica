@@ -56,7 +56,7 @@ Fixpoint add_aux (base : Z) (carry : bool)
       (add_aux base next_carry tail))
   end.
 
-Definition add (base : Z) (a b : list Z) : list Z :=
+Definition number_add (base : Z) (a b : list Z) : list Z :=
   (add_aux base false (combine_default 0 0 a b)).
 
 (* Search (?a * ?b -> ?a). *)
