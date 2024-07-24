@@ -1,3 +1,4 @@
+Require Import Coq.Program.Basics.
 Require Import VST.floyd.proofauto.
 Require Import VST.floyd.library.
 Require Import Didactica.arithmetic.
@@ -15,87 +16,108 @@ Definition make_number (l : Z) (v : val) : reptype struct_number :=
   ((Vptrofs (Ptrofs.repr l)), v).
 
 Record number_data := build_number_data {
-  sh : share;
-  pointer : val;
-  digits : list Z;
+  number_share : share;
+  number_array : val;
+  number_digits : list Z;
 }.
+
+Record pre_number_data := build_pre_number_data {
+  pre_number_share : share;
+  pre_number_array : val;
+}.
+
+Definition fill_number
+  (data : pre_number_data) (digits : list Z) := 
+  (build_number_data
+    (pre_number_share data)
+    (pre_number_array data)
+    digits).
 
 (*
 Definition number_data_example :=
   build_number_data Tsh (Vint (Int.repr 0)) [].
 
-Compute (digits number_data_example).
+Compute (number_digits number_data_example).
 *)
 
 Definition digit_array
-  {CS : compspecs} (sh : Share.t)
-  (digit_list : list Z) (digits : val) := 
+  {CS : compspecs} (data : number_data) := 
   (data_at
-    sh
-    (tarray tulong (Zlength digit_list))
-    (map Vptrofs (map Ptrofs.repr digit_list))
-    digits).
+    (number_share data)
+    (tarray tulong (Zlength (number_digits data)))
+    (map (compose Vptrofs Ptrofs.repr) (number_digits data))
+    (number_array data)).
 
-Definition uninitialized_digit_array
-  {CS : compspecs} (sh : Share.t)
-  (length : Z) (digits : val) :=
+Definition pre_digit_array
+  {CS : compspecs} (data : pre_number_data)
+  (size : Z) :=
   (data_at_
-    sh
-    (tarray tulong length)
-    digits).
+    (pre_number_share data)
+    (tarray tulong size)
+    (pre_number_array data)).
 
-Definition cnumber {CS : compspecs} (sh : Share.t)
-  (digit_list : list Z) (digits : val) (p : val) :=
+Definition digit_bound (digit : Z) :=
+  -1 < digit < Int64.max_unsigned.
+
+Definition readable_number (data : number_data) :=
+  readable_share (number_share data).
+
+Definition writable_number (data : number_data) :=
+  writable_share (number_share data).
+
+Definition writable_pre_number (data : pre_number_data) :=
+  writable_share (pre_number_share data).
+
+Definition cnumber {CS : compspecs}
+  (data : number_data) (pointer : val) :=
+  let digit_list := (number_digits data) in
+  let length := (Zlength digit_list) in
   (andp
     (prop 
       (and
-        (0 <= Zlength digit_list <= Int64.max_unsigned)
+        (digit_bound length)
       (and
-        (Forall
-          (fun d : Z => -1 < d < Int64.max_unsigned)
-          digit_list)
-        (nonempty_share sh))))
+        (Forall digit_bound digit_list)
+        (readable_number data))))
     (sepcon
       (data_at
-        sh
+        (number_share data)
         struct_number
-        (make_number (Zlength digit_list) digits)
-        p)
-      (digit_array sh digit_list digits))).
+        (make_number length (number_array data))
+        pointer)
+      (digit_array data))).
 
-Definition uninitialized_cnumber {CS : compspecs}
-  (sh : Share.t) (size : Z) (digits : val)
-  (p : val) :=
+Definition pre_cnumber {CS : compspecs}
+  (data : pre_number_data) (size : Z) (pointer : val) :=
   (andp
     (prop (and
-      (0 <= size <= Int64.max_unsigned)
-      (nonempty_share sh)))
+      (digit_bound size)
+      (writable_pre_number data)))
     (sepcon
       (data_at
-        sh
+        (pre_number_share data)
         struct_number
-        (make_number size digits)
-        p)
-      (uninitialized_digit_array
-        sh size digits))).
+        (make_number size (pre_number_array data))
+        pointer)
+      (pre_digit_array data size))).
 
-Arguments digit_array CS sh digit_list digits : simpl never.
-Arguments uninitialized_digit_array
-            CS sh length digits : simpl never.
+Arguments digit_array CS data : simpl never.
+Arguments pre_digit_array
+            CS data : simpl never.
 
-Arguments cnumber CS sh digit_list digits p : simpl never.
+Arguments cnumber CS data pointer : simpl never.
 
 Lemma cnumber_local_facts:
-  forall sh digit_list digits p,
-   cnumber sh digit_list digits p |--
-       !! (isptr p /\ 0 <= Zlength digit_list <= Int64.max_unsigned).
+  forall data pointer,
+   cnumber data pointer |--
+       !! (isptr pointer /\ digit_bound (Zlength (number_digits data))).
 Proof.
   intros. unfold cnumber. entailer!.
 Qed.
 
 Lemma cnumber_valid_pointer:
-  forall sh digit_list digits p,
-   cnumber sh digit_list digits p |-- valid_pointer p.
+  forall data pointer,
+   cnumber data pointer |-- valid_pointer pointer.
 Proof.
   intros. unfold cnumber. entailer!.
 Qed.
@@ -110,17 +132,20 @@ Definition comparison_int c : val :=
   | Gt => Vint (Int.repr 1)
   end.
 
+Definition add_digits : list Z -> list Z -> list Z :=
+  number_add Int64.max_unsigned.
+
 Definition number_get_spec : ident * funspec :=
   DECLARE _number_get
-  WITH sh : share, digit_list : list Z, digits : val, n : val, i : Z
+  WITH data : number_data, n : val, i : Z
   PRE [ tptr struct_number, tulong ]
     PROP ()
     PARAMS (n; Vptrofs (Ptrofs.repr i))
-    SEP (cnumber sh digit_list digits n)
+    SEP (cnumber data n)
   POST [ tulong ]
     PROP ()
-    RETURN (Vlong (Int64.repr (Znth i digit_list)))
-    SEP (cnumber sh digit_list digits n).
+    RETURN (Vlong (Int64.repr (Znth i (number_digits data))))
+    SEP (cnumber data n).
 
 Definition max_size_t_spec : ident * funspec :=
   DECLARE _max_size_t
@@ -137,54 +162,47 @@ Definition max_size_t_spec : ident * funspec :=
 Definition number_compare_spec : ident * funspec :=
  DECLARE _number_compare
  WITH
-   sh0 : share, sh1: share, n0 : val, n1 : val,
-   digits0 : val, digits1 : val, d0 : list Z, d1 : list Z
+   data0 : number_data, data1 : number_data,
+   n0 : val, n1 : val
  PRE [ tptr struct_number, tptr struct_number ]
-   PROP (readable_share sh0; readable_share sh1)
+   PROP ()
    PARAMS (n0; n1)
-   SEP (cnumber sh0 d0 digits0 n0; cnumber sh1 d1 digits1 n1)
+   SEP (cnumber data0 n0; cnumber data1 n1)
  POST [ tint ]
    PROP ()
-   RETURN (comparison_int (compare d0 d1))
-   SEP (cnumber sh0 d0 digits0 n0; cnumber sh1 d1 digits1 n1).
+   RETURN (
+     comparison_int (compare
+       (number_digits data0)
+       (number_digits data1)))
+   SEP (cnumber data0 n0; cnumber data1 n1).
 
 Definition number_add_inner_spec : ident * funspec :=
   DECLARE _number_add_inner
   WITH
     left : number_data, left_pointer : val,
     right : number_data, right_pointer : val,
-    output_share : share, output_digits_pointer : val,
-    output_pointer : val
+    output : pre_number_data, output_pointer : val
   PRE [ tptr struct_number, tptr struct_number ]
-    PROP (
-      readable_share (sh left);
-      readable_share (sh right);
-      writable_share output_share)
-    PARAMS (left_pointer; (pointer right); output_pointer)
+    PROP ()
+    PARAMS (left_pointer; right_pointer; output_pointer)
     SEP (
-      (cnumber
-        (sh left) (digits left) (pointer left) left_pointer);
-      (cnumber
-        (sh right) (digits right) (pointer right) right_pointer);
-      (uninitialized_cnumber
-        output_share
-        (Zlength
-          (number_add Int64.max_unsigned (digits left) (digits right)))
-        output_digits_pointer
+      (cnumber left left_pointer);
+      (cnumber right right_pointer);
+      (pre_cnumber output
+        (Zlength (add_digits
+          (number_digits left)
+          (number_digits right)))
         output_pointer))
   POST [ tvoid ]
     PROP ()
     RETURN ()
     SEP (
+      (cnumber left left_pointer);
+      (cnumber right right_pointer);
       (cnumber
-          (sh left) (digits left) (pointer left) left_pointer);
-      (cnumber
-        (sh right) (digits right) (pointer right) right_pointer);
-      (cnumber
-        output_share
-        (number_add
-          Int64.max_unsigned (digits left) (digits right))
-        output_digits_pointer
+        (fill_number
+          output
+          (add_digits (number_digits left) (number_digits right)))
         output_pointer)).
 
 Definition Gprog : funspecs := [
