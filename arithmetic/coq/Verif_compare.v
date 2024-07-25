@@ -305,30 +305,38 @@ Qed.
 Lemma body_number_compare: semax_body Vprog Gprog f_number_compare number_compare_spec.
 Proof.
   start_function.
-  unfold cnumber. Intros.
+  unfold cnumber.
+  Intros.
   forward.
   forward. simpl.
   forward_call. forward. deadvars!.
-  remember (Z.max (Zlength d0) (Zlength d1)) as u.
+  remember (Z.max (Zlength (number_digits data0))
+                  (Zlength (number_digits data1))) as u.
   forward_while (
     EX i : Z,
     PROP (
       0 <= i <= u;
-      compare (sublist i u d0) (sublist i u d1) = Eq
+      compare (sublist i u (number_digits data0)) (sublist i u (number_digits data1)) = Eq
     )
     LOCAL (
       temp _i (Vptrofs (Ptrofs.repr i));
       temp _left n0; temp _right n1
     )
     SEP (
-      data_at Ews struct_number (make_number d0 digits0) n0;
-      digit_array sh0 d0 digits0;
-      data_at Ews struct_number (make_number d1 digits1) n1;
-      digit_array sh1 d1 digits1
+      data_at (number_share data0) struct_number
+          (make_number (Zlength (number_digits data0)) (number_array data0)) n0;
+      digit_array data0;
+      data_at (number_share data1) struct_number
+          (make_number (Zlength (number_digits data1)) (number_array data1)) n1; 
+      digit_array data1
     )
   ). Exists u. entailer!. {
-      remember (Z.max (Zlength d0) (Zlength d1)) as u.
-      rewrite (sublist_over d1 u u). rewrite (sublist_over d0 u u).
+      remember
+        (Z.max
+          (Zlength (number_digits data0))
+          (Zlength (number_digits data1)))
+      as u.
+      rewrite (sublist_over (number_digits data1) u u). rewrite (sublist_over (number_digits data0) u u).
       reflexivity. lia. lia.
     } { entailer!. } {
       forward.
@@ -340,38 +348,46 @@ Proof.
       with
         (Vptrofs (Ptrofs.repr (i - 1)))
       by normalize.
-      forward_call (sh0, d0, digits0, n0, (i - 1)).
+      forward_call (data0, n0, (i - 1)).
       { unfold cnumber; entailer!. }
       { forward; deadvars!.
       rewrite <- seq_assoc.
-      forward_call (sh1, d1, digits1, n1, (i - 1)).
+      forward_call (data1, n1, (i - 1)).
       { unfold cnumber. entailer!. } {
       apply repr64_neq_e in HRE.
       normalize in HRE.
       unfold cnumber. Intros.
       forward; deadvars!.
-      assert (eq (compare ((Znth (i - 1) d0) :: (sublist i u d0)) ((Znth (i - 1) d1) :: (sublist i u d1))) (compare (sublist (i - 1) u d0) (sublist (i - 1) u d1))).
+      assert (eq (compare ((Znth (i - 1) (number_digits data0)) :: (sublist i u (number_digits data0))) ((Znth (i - 1) (number_digits data1)) :: (sublist i u (number_digits data1)))) (compare (sublist (i - 1) u (number_digits data0)) (sublist (i - 1) u (number_digits data1)))).
       subst u.
-      rewrite (compare_backwards Int64.max_unsigned i d0 d1).
+      rewrite
+        (compare_backwards
+          Int64.max_unsigned
+          i
+          (number_digits data0)
+          (number_digits data1)).
       reflexivity. rep_lia.
       assumption.
       assumption.
-      lia. simpl in H5.
-      rewrite H4 in H5; simpl in H5.
-      assert (-1 < Znth (i - 1) d1 < Int64.max_unsigned).
+      lia. simpl in H7.
+      assert (
+        -1 < Znth (i - 1) (number_digits data1) < Int64.max_unsigned
+      ).
       apply Znth_bounded with
         (i := i - 1) (base := Int64.max_unsigned)
-        (digits := d1); try rep_lia; assumption.
-      assert (-1 < Znth (i - 1) d0 < Int64.max_unsigned).
+        (digits := (number_digits data1)); try rep_lia; assumption.
+      assert (-1 < Znth (i - 1) (number_digits data0) < Int64.max_unsigned).
       apply Znth_bounded with
         (i := i - 1) (base := Int64.max_unsigned)
-        (digits := d0); try rep_lia; assumption.
-      forward_if. replace ((Znth (i - 1) d0 ?= Znth (i - 1) d1)%Z) with
+        (digits := (number_digits data0)); try rep_lia; assumption.
+      forward_if.
+      replace ((Znth (i - 1) (number_digits data0) ?= Znth (i - 1) (number_digits data1))%Z) with
         Lt in *.
       forward. unfold cnumber; entailer!.
       rewrite compare_suffix with
         (i := i - 1); try lia.
-      rewrite <- H5.
+      rewrite <- H7.
+      simpl.
       reflexivity.
       left. symmetry. apply H5.
       forward_if. replace ((Znth (i - 1) d0 ?= @Znth Z 0 (i - 1) d1)%Z)

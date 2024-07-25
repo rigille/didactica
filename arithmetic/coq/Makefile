@@ -1,6 +1,6 @@
 COQMFFLAGS := -Q . Didactica
 
-ALLVFILES := Add.v number.v arithmetic.v Verif_arithmetic.v Verif_number_add_inner.v Main.v
+ALLVFILES := Add.v number.v arithmetic.v Verif_compare.v Verif_number_add_inner.v Main.v
 
 build: Makefile.coq
 	$(MAKE) -f Makefile.coq
