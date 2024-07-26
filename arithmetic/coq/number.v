@@ -187,7 +187,9 @@ Definition add_with_carry_spec : ident * funspec :=
     left_digit : Z, right_digit : Z, carry_in : bool,
     carry_out : val
   PRE [tulong, tulong, tulong, tptr tulong]
-    PROP ()
+    PROP (
+      digit_bound left_digit;
+      digit_bound right_digit)
     PARAMS (
       Vlong (Int64.repr left_digit);
       Vlong (Int64.repr right_digit);

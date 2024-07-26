@@ -52,7 +52,9 @@ inline uint64_t add_with_carry(
 ) {
     uint64_t temporary = left_digit + carry_in;
     uint64_t result = temporary + right_digit;
-    *carry_out = (temporary < carry_in) + (result < right_digit);
+    *carry_out =
+        (uint64_t)(temporary < carry_in) +
+        (uint64_t)(result < right_digit);
     return result;
 }
 #endif
