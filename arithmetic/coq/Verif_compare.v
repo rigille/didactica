@@ -369,7 +369,7 @@ Proof.
       reflexivity. rep_lia.
       assumption.
       assumption.
-      lia. simpl in H7.
+      lia.
       assert (
         -1 < Znth (i - 1) (number_digits data1) < Int64.max_unsigned
       ).
@@ -380,6 +380,7 @@ Proof.
       apply Znth_bounded with
         (i := i - 1) (base := Int64.max_unsigned)
         (digits := (number_digits data0)); try rep_lia; assumption.
+      simpl in H7. rewrite H6 in H7.
       forward_if.
       replace ((Znth (i - 1) (number_digits data0) ?= Znth (i - 1) (number_digits data1))%Z) with
         Lt in *.
@@ -387,15 +388,14 @@ Proof.
       rewrite compare_suffix with
         (i := i - 1); try lia.
       rewrite <- H7.
-      simpl.
       reflexivity.
-      left. symmetry. apply H5.
-      forward_if. replace ((Znth (i - 1) d0 ?= @Znth Z 0 (i - 1) d1)%Z)
+      left. symmetry. apply H7.
+      forward_if. replace ((Znth (i - 1) (number_digits data0) ?= @Znth Z 0 (i - 1) (number_digits data1))%Z)
       with Gt in *. 
       forward.
       unfold cnumber; entailer!.
       rewrite compare_suffix with (i := i - 1); try lia.
-      rewrite <- H5. reflexivity.
+      rewrite <- H7. reflexivity.
       right. symmetry.
       assumption. rewrite Z.compare_antisym.
       symmetry.
@@ -404,17 +404,18 @@ Proof.
       assumption.
       forward. Exists (i - 1).
       entailer!.
-      rewrite <- H5.
+      rewrite <- H7.
       apply Zaux.Zcompare_Eq.
       lia.
       } }
     } {
+      unfold digit_bound in *.
       apply repr_inj_unsigned64 in HRE; try lia.
-      subst i. assert (compare d0 d1 = Eq).
-      - rewrite (sublist_same_gen 0 u d1) in H4; try lia.
-        rewrite (sublist_same_gen 0 u d0) in H4; try lia.
-        apply H4.
-      - forward. rewrite H5.
+      subst i. assert (compare (number_digits data0) (number_digits data1) = Eq).
+      - rewrite (sublist_same_gen 0 u (number_digits data1)) in H6; try lia.
+        rewrite (sublist_same_gen 0 u (number_digits data0)) in H6; try lia.
+        apply H6.
+      - forward. rewrite H7.
         unfold cnumber.
         entailer!.
     }
