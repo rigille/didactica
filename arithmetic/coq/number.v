@@ -135,6 +135,9 @@ Definition comparison_int c : val :=
 Definition add_digits : list Z -> list Z -> list Z :=
   number_add Int64.max_unsigned.
 
+Definition digits_full_adder : bool -> Z -> Z -> (bool * Z) :=
+  full_adder Int64.max_unsigned.
+
 Definition number_get_spec : ident * funspec :=
   DECLARE _number_get
   WITH data : number_data, n : val, i : Z
@@ -176,13 +179,46 @@ Definition number_compare_spec : ident * funspec :=
        (number_digits data1)))
    SEP (cnumber data0 n0; cnumber data1 n1).
 
+Check data_at.
+
+Definition add_with_carry_spec : ident * funspec :=
+  DECLARE _add_with_carry
+  WITH
+    left_digit : Z, right_digit : Z, carry_in : bool,
+    carry_out : val
+  PRE [tulong, tulong, tulong, tptr tulong]
+    PROP ()
+    PARAMS (
+      Vlong (Int64.repr left_digit);
+      Vlong (Int64.repr right_digit);
+      Vlong (Int64.repr (Z.b2z carry_in));
+      carry_out)
+    SEP (data_at_ Tsh tulong carry_out)
+  POST [ tulong ]
+    PROP ()
+    RETURN (
+      Vlong (Int64.repr
+        (snd (digits_full_adder
+          carry_in left_digit right_digit))))
+    SEP(
+      (data_at
+        Tsh
+        tulong
+        (Vlong (Int64.repr
+          (Z.b2z (fst (digits_full_adder
+            carry_in
+            left_digit
+            right_digit)))))
+        carry_out)
+    ).
+
 Definition number_add_inner_spec : ident * funspec :=
   DECLARE _number_add_inner
   WITH
     left : number_data, left_pointer : val,
     right : number_data, right_pointer : val,
     output : pre_number_data, output_pointer : val
-  PRE [ tptr struct_number, tptr struct_number ]
+  PRE [ tptr struct_number, tptr struct_number, tptr struct_number ]
     PROP ()
     PARAMS (left_pointer; right_pointer; output_pointer)
     SEP (
