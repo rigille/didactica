@@ -362,7 +362,7 @@ Proof.
       subst u.
       rewrite
         (compare_backwards
-          Int64.max_unsigned
+          Int64.modulus
           i
           (number_digits data0)
           (number_digits data1)).
@@ -371,14 +371,14 @@ Proof.
       assumption.
       lia.
       assert (
-        -1 < Znth (i - 1) (number_digits data1) < Int64.max_unsigned
+        -1 < Znth (i - 1) (number_digits data1) < Int64.modulus
       ).
       apply Znth_bounded with
-        (i := i - 1) (base := Int64.max_unsigned)
+        (i := i - 1) (base := Int64.modulus)
         (digits := (number_digits data1)); try rep_lia; assumption.
-      assert (-1 < Znth (i - 1) (number_digits data0) < Int64.max_unsigned).
+      assert (-1 < Znth (i - 1) (number_digits data0) < Int64.modulus).
       apply Znth_bounded with
-        (i := i - 1) (base := Int64.max_unsigned)
+        (i := i - 1) (base := Int64.modulus)
         (digits := (number_digits data0)); try rep_lia; assumption.
       simpl in H7. rewrite H6 in H7.
       forward_if.
@@ -410,7 +410,7 @@ Proof.
       } }
     } {
       unfold digit_bound in *.
-      apply repr_inj_unsigned64 in HRE; try lia.
+      apply repr_inj_unsigned64 in HRE; try rep_lia.
       subst i. assert (compare (number_digits data0) (number_digits data1) = Eq).
       - rewrite (sublist_same_gen 0 u (number_digits data1)) in H6; try lia.
         rewrite (sublist_same_gen 0 u (number_digits data0)) in H6; try lia.

@@ -50,9 +50,11 @@ inline uint64_t add_with_carry(
     uint64_t left_digit, uint64_t right_digit,
     uint64_t carry_in, uint64_t* carry_out
 ) {
-    uint64_t temporary = left_digit + carry_in;
+    uint64_t temporary = carry_in + left_digit;
     uint64_t result = temporary + right_digit;
     *carry_out =
+        // I'm casting to unsigneds because I don't feel
+        // like proving this addition doesn't overflow
         (uint64_t)(temporary < carry_in) +
         (uint64_t)(result < right_digit);
     return result;

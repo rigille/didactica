@@ -42,6 +42,22 @@ Definition full_adder (base : Z) (carry : bool)
                         (Z.ltb result right)) in
     (next_carry, result).
 
+Lemma add_back_to_bool :
+  forall base carry left right,
+  let c := Z.b2z carry in
+  let temporary := (Z.modulo (c + left) base) in
+  let result := (Z.modulo (temporary + right) base) in
+  (eq
+    (Z.add
+      (Z.b2z (temporary <? Z.b2z carry))
+      (Z.b2z (result <? right)))
+    (Z.b2z
+      (orb
+        (Z.ltb temporary (Z.b2z carry))
+        (Z.ltb result right)))).
+Proof.
+Admitted.
+
 Fixpoint add_aux (base : Z) (carry : bool)
   (digits : list (Z * Z)) : list Z :=
   match digits with

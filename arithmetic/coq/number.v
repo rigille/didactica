@@ -57,7 +57,7 @@ Definition pre_digit_array
     (pre_number_array data)).
 
 Definition digit_bound (digit : Z) :=
-  -1 < digit < Int64.max_unsigned.
+  -1 < digit < Int64.modulus.
 
 Definition readable_number (data : number_data) :=
   readable_share (number_share data).
@@ -133,10 +133,10 @@ Definition comparison_int c : val :=
   end.
 
 Definition add_digits : list Z -> list Z -> list Z :=
-  number_add Int64.max_unsigned.
+  number_add Int64.modulus.
 
 Definition digits_full_adder : bool -> Z -> Z -> (bool * Z) :=
-  full_adder Int64.max_unsigned.
+  full_adder Int64.modulus.
 
 Definition number_get_spec : ident * funspec :=
   DECLARE _number_get

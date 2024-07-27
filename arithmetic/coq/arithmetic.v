@@ -233,7 +233,7 @@ Definition f_add_with_carry := {|
   fn_body :=
 (Ssequence
   (Sset _temporary
-    (Ebinop Oadd (Etempvar _left_digit tulong) (Etempvar _carry_in tulong)
+    (Ebinop Oadd (Etempvar _carry_in tulong) (Etempvar _left_digit tulong)
       tulong))
   (Ssequence
     (Sset _result
