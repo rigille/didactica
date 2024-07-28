@@ -44,12 +44,18 @@ Lemma ltu_translation : forall a b,
       (Int64.repr b))
     (Z.ltb a b)).
 Proof.
-Admitted.
-
-Lemma bool_bound : forall b,
-  0 <= (Z.b2z b) <= 1.
-Proof.
-Admitted.
+  intros a b bound_a bound_b.
+  unfold digit_bound in *.
+  destruct
+    (Int64.ltu (Int64.repr a) (Int64.repr b))
+  eqn:comparison.
+  - apply
+      (ltu_inv64 (Int64.repr a) (Int64.repr b))
+    in comparison. normalize in comparison. lia.
+  - apply
+      (ltu_false_inv64 (Int64.repr a) (Int64.repr b))
+    in comparison. normalize in comparison. lia.
+Qed.
 
 Lemma body_add_with_carry :
   (semax_body Vprog Gprog f_add_with_carry add_with_carry_spec).

@@ -30,17 +30,135 @@ Fixpoint combine_default {X Y : Type}
       end
   end.
 
-Definition bool_to_Z := Z.b2z.
+Definition theoretical_full_adder (base : Z) (carry : bool)
+  (left right : Z) : bool * Z :=
+  let carry_z := Z.b2z carry in
+  let sum := carry_z + left + right in
+  let carry_out := Z.ltb base sum in
+  (carry_out, sum mod base).
 
 Definition full_adder (base : Z) (carry : bool)
   (left right : Z) : bool * Z :=
-    let c := bool_to_Z carry in
+    let c := Z.b2z carry in
     let temporary := (Z.modulo (c + left) base) in
     let result := (Z.modulo (temporary + right) base) in
     let next_carry := (orb
                         (Z.ltb temporary c)
                         (Z.ltb result right)) in
     (next_carry, result).
+
+Lemma bool_bound : forall b,
+  0 <= (Z.b2z b) <= 1.
+Proof.
+  intros; destruct b; simpl; lia.
+Qed.
+
+Theorem full_adder_result_small :
+  forall base carry left right,
+  1 < base ->
+  0 <= left < base ->
+  0 <= right < base ->
+  0 <= snd (full_adder base carry left right) < base.
+Proof.
+  intros. simpl. apply Z.mod_pos_bound.
+  lia.
+Qed.
+
+Theorem possible_remainders : forall base a b,
+  0 <= a < base ->
+  0 <= b < base ->
+  (eq
+    (Z.modulo (a + b) base)
+    (if Z.ltb (a + b) base then 
+      (a + b)
+    else
+      (a + b - base))).
+Proof.
+  intros.
+  assert (0 <= a + b < 2*base) by lia.
+  destruct (Z.ltb (a + b) base) eqn:Bound.
+  - apply Z.mod_small. lia.
+  - assert (0 <= a + b - base < base) by lia.
+    rewrite <- (Z.mod_add (a + b) (-1) base ltac:(lia)).
+    replace (a + b + (-1 * base)) with
+            (a + b - base) by lia.
+    apply Z.mod_small. assumption.
+Qed.
+
+Search ((_ + _) mod _).
+
+(**
+  Let's say we have any (base : Z) (carry : bool) (left right : Z)
+  such that
+    base_big : 1 < base
+    left_bound : 0 <= left < base
+    right_bound : 0 <= right < base
+  and define (carry_z := Z.bool_to_Z carry) the usual
+  representation of bools as 0 or 1.
+  now let's consider (carry_z + left + right) mod base. We need to
+  calculate this without using any number that exceeds base in value
+  throughout the calculation, since this is what we have available in
+  the cpu. First of all since we're talking about integers, we can
+  deduce the tighter bounds
+    left_bound' : 0 <= left <= base - 1
+    right_bound' : 0 <= right <= base - 1
+  adding them together
+    partial_bound : 0 <= left + right <= 2*base - 2
+  now since we have (bool_bound carry) : 0 <= carry_z <= 1, we can
+  add that and obtain
+    full_bound' : 0 <= carry_z + left + right <= 2*base - 1
+    full_bound : 0 <= carry_z + left + right < 2*base
+  now what's ((carry_z + left + right) mod base)? It depends on the
+  value of first_condition : (Z.ltb (carry_z + left + right) base).
+  If it's true then
+    ((carry_z + left + right) mod base) = carry_z + left + right
+  If it's false then we have
+    base <= carry_z + left + right
+  but remembering full_bound
+    base <= carry_z + left + right < 2*base
+    0 <= carry_z + left + right - base < base
+  therefore
+    (eq
+      ((carry_z + left + right) mod base)
+      (carry_z + left + right - base))
+*)
+
+Lemma single_overflow : forall
+  (base : Z) (carry : bool) (left right : Z),
+  1 < base ->
+  0 <= left < base ->
+  0 <= right < base ->
+  let c := Z.b2z carry in
+  let temporary := (Z.modulo (c + left) base) in
+  let result := (Z.modulo (temporary + right) base) in
+  (or
+    (and
+      (temporary <? c = true)
+      (result <? right = false))
+    (and
+      (temporary <? c = false)
+      (result <? right = true))).
+Proof.
+  simpl. intros
+  base carry left right base_bound left_bound right_bound.
+  generalize
+    (bool_bound carry); intros c_bound.
+  remember (Z.b2z carry) as c eqn:c_definition.
+  generalize
+    (possible_remainders
+      base c left ltac:(lia) left_bound);
+  intros temporary_definition.
+  remember ((c + left) mod base) as temporary.
+  clear Heqtemporary.
+  intros. (*
+  destruct (Z.ltb temporary base) eqn:OverflowCheck0;
+  destruct (Z.ltb result right).
+  { {
+    right. split. } {} }
+  {}
+           *)
+Admitted.
+
 
 Lemma add_back_to_bool :
   forall base carry left right,
@@ -49,11 +167,11 @@ Lemma add_back_to_bool :
   let result := (Z.modulo (temporary + right) base) in
   (eq
     (Z.add
-      (Z.b2z (temporary <? Z.b2z carry))
+      (Z.b2z (temporary <? c))
       (Z.b2z (result <? right)))
     (Z.b2z
       (orb
-        (Z.ltb temporary (Z.b2z carry))
+        (Z.ltb temporary c)
         (Z.ltb result right)))).
 Proof.
 Admitted.
@@ -77,18 +195,6 @@ Definition number_add (base : Z) (a b : list Z) : list Z :=
 
 (* Search (?a * ?b -> ?a). *)
 
-Theorem full_adder_result_small :
-  forall base carry left right,
-  1 < base ->
-  0 <= left < base ->
-  0 <= right < base ->
-  0 <= snd (full_adder base carry left right) < base.
-Proof.
-  intros. simpl. apply Z.mod_pos_bound.
-  lia.
-Qed.
-
-(*
 Theorem overflow_check : forall base a b,
   0 <= a < base ->
   0 <= b < base ->
@@ -110,28 +216,6 @@ Proof.
     reflexivity.
   }
 Qed.
-*)
-
-Theorem possible_remainders : forall base a b,
-  0 <= a < base ->
-  0 <= b < base ->
-  (eq
-    (Z.modulo (a + b) base)
-    (if Z.ltb (a + b) base then 
-      (a + b)
-    else
-      (a + b - base))).
-Proof.
-  intros.
-  assert (0 <= a + b < 2*base) by lia.
-  destruct (Z.ltb (a + b) base) eqn:Bound.
-  - apply Z.mod_small. lia.
-  - assert (0 <= a + b - base < base) by lia.
-    rewrite <- (Z.mod_add (a + b) (-1) base ltac:(lia)).
-    replace (a + b + (-1 * base)) with
-            (a + b - base) by lia.
-    apply Z.mod_small. assumption.
-Qed.
 
 Theorem full_adder_spec :
   forall base carry n m,
@@ -140,12 +224,12 @@ Theorem full_adder_spec :
   0 <= m < base ->
   let (next_carry, result) := full_adder base carry n m in
   (eq
-    (n + m + bool_to_Z carry)
-    (base*(bool_to_Z next_carry) + result)).
+    (n + m + Z.b2z carry)
+    (base*(Z.b2z next_carry) + result)).
 Proof.
   intros base carry n m BaseBig NBound MBound.
   unfold full_adder.
-  remember (bool_to_Z carry) as c eqn:CDefinition.
+  remember (Z.b2z carry) as c eqn:CDefinition.
   assert (0 <= c <= 1) by (destruct carry; subst c; simpl; lia).
   remember (Z.modulo (c + n) base)
     as remainder eqn:RemainderDefinition.
@@ -178,11 +262,11 @@ Theorem full_adder_adds :
   1 < base ->
   0 <= r0 < base ->
   0 <= r1 < base ->
-  let c := bool_to_Z carry in
+  let c := Z.b2z carry in
   let (next_carry, result) := full_adder base carry r0 r1 in
   (eq
     ((base*q0 + r0) + (base*q1 + r1) + c)
-    (base*(q0 + q1 + (bool_to_Z next_carry)) + result)).
+    (base*(q0 + q1 + (Z.b2z next_carry)) + result)).
 Proof.
   intros base carry r0 q0 r1 q1 BaseBig R0Bound
     R1Bound c.
@@ -193,9 +277,9 @@ Proof.
   } {
     subst c.
     replace 
-      (r0 + r1 + bool_to_Z carry)
+      (r0 + r1 + Z.b2z carry)
     with
-      (base*(bool_to_Z next_carry) + result). {
+      (base*(Z.b2z next_carry) + result). {
       lia.
     } {
       rewrite full_adder_spec with (base:=base); try assumption.
