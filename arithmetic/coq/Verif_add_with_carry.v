@@ -66,7 +66,9 @@ Proof.
       Int64.modulus
       carry_in
       left_digit
-      right_digit);
+      right_digit
+      ltac:(unfold digit_bound in *; lia)
+      ltac:(unfold digit_bound in *; lia));
   intros back_to_bool; simpl in back_to_bool.
   forward. deadvars!. normalize.
   generalize
