@@ -53,6 +53,13 @@ Proof.
   intros; destruct b; simpl; lia.
 Qed.
 
+Lemma bool_digit_bound : forall base b,
+  1 < base ->
+  0 <= (Z.b2z b) < base.
+Proof.
+  intros. generalize (bool_bound b); lia.
+Qed.
+
 Theorem full_adder_result_small :
   forall base carry left right,
   1 < base ->
@@ -64,26 +71,31 @@ Proof.
   lia.
 Qed.
 
-Theorem overflow_check : forall base a b,
-  0 <= a < base ->
-  0 <= b < base ->
-  let remainder := (Z.modulo (a + b) base) in
-  (iff
-    (remainder < a)
-    (a + b > base)).
-Proof.
-Admitted.
-
-Search ((_ + _) mod _).
-
-Check Zplus_mod_idemp_l.
-(* forall a b n : Z, (a mod n + b) mod n = (a + b) mod n *)
-
 Theorem digit_addition_bound : forall base carry left right,
   0 <= left < base ->
   0 <= right < base ->
   let carry_z := Z.b2z carry in
   0 <= carry_z + left + right < 2*base.
+Proof.
+Admitted.
+
+Theorem overflow_check : forall base carry a b,
+  0 <= a < base ->
+  0 <= b < base ->
+  let remainder := (Z.modulo (a + ((Z.b2z carry) + b)) base) in
+  (eq
+    (remainder <? a)
+    (negb (a + ((Z.b2z carry) + b) <? base))).
+Proof.
+Admitted.
+
+Theorem overflow_check' : forall base a b,
+  0 <= a < base ->
+  0 <= b < base ->
+  let remainder := (Z.modulo (a + b) base) in
+  (eq
+    (remainder <? a)
+    (negb (a + b <? base))).
 Proof.
 Admitted.
 
@@ -98,7 +110,6 @@ Theorem impossible_overflows : forall base carry left right,
     (Z.lt result right))).
 Proof.
 Admitted.
-
 
 Theorem possible_remainders : forall base carry a b,
   0 <= a < base ->
@@ -123,6 +134,54 @@ Proof.
     apply Z.mod_small. assumption.
   *)
 Admitted.
+
+Theorem full_adders_agree :
+  forall base carry n m,
+  1 < base ->
+  0 <= n < base ->
+  0 <= m < base ->
+  (eq
+    (full_adder base carry n m)
+    (theoretical_full_adder base carry n m)).
+Proof.
+  intros base carry n m base_big n_bound m_bound.
+  unfold full_adder, theoretical_full_adder.
+  apply pair_equal_spec; split. {
+    rewrite
+      (overflow_check'
+        base (Z.b2z carry) n
+        (bool_digit_bound base carry base_big) n_bound).
+    destruct (Z.b2z carry + n <? base) eqn:overflow_0. {
+      rewrite
+        (Z.add_comm ((Z.b2z carry + n) mod base) m).
+      generalize
+        (Z.mod_pos_bound 
+          (Z.b2z carry + n) base ltac:(lia)); intros.
+      rewrite
+        (overflow_check'
+          base m ((Z.b2z carry + n) mod base)
+          m_bound ltac:(lia)).
+      rewrite <-
+      (Z.add_comm ((Z.b2z carry + n) mod base) m).
+      replace ((Z.b2z carry + n) mod base)
+      with (Z.b2z carry + n). reflexivity.
+      rewrite Z.mod_small. reflexivity.
+      generalize (bool_bound carry); intros.
+      lia.
+    } {
+      rewrite (Zplus_mod_idemp_l ((Z.b2z carry) + n) m base).
+      rewrite
+        (Z.add_comm ((Z.b2z carry) + n) m).
+      rewrite
+        (overflow_check
+          base carry m n); try lia.
+    }
+  } {
+    remember (Z.b2z carry) as carry_z eqn:carry_z_definition.
+    apply (Zplus_mod_idemp_l (carry_z + n) m base).
+  } 
+Qed.
+
 
 
 (**
@@ -206,18 +265,6 @@ Fixpoint add_aux (base : Z) (carry : bool)
 
 Definition number_add (base : Z) (a b : list Z) : list Z :=
   (add_aux base false (combine_default 0 0 a b)).
-
-(* Search (?a * ?b -> ?a). *)
-Theorem full_adders_agree :
-  forall base carry n m,
-  1 < base ->
-  0 <= n < base ->
-  0 <= m < base ->
-  (eq
-    (full_adder base carry n m)
-    (theoretical_full_adder base carry n m)).
-Proof.
-Admitted.
 
 Theorem full_adder_spec :
   forall base carry n m,
