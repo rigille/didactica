@@ -77,39 +77,9 @@ Theorem digit_addition_bound : forall base carry left right,
   let carry_z := Z.b2z carry in
   0 <= carry_z + left + right < 2*base.
 Proof.
-Admitted.
-
-Theorem overflow_check : forall base carry a b,
-  0 <= a < base ->
-  0 <= b < base ->
-  let remainder := (Z.modulo (a + ((Z.b2z carry) + b)) base) in
-  (eq
-    (remainder <? a)
-    (negb (a + ((Z.b2z carry) + b) <? base))).
-Proof.
-Admitted.
-
-Theorem overflow_check' : forall base a b,
-  0 <= a < base ->
-  0 <= b < base ->
-  let remainder := (Z.modulo (a + b) base) in
-  (eq
-    (remainder <? a)
-    (negb (a + b <? base))).
-Proof.
-Admitted.
-
-Theorem impossible_overflows : forall base carry left right,
-  0 <= left < base ->
-  0 <= right < base ->
-  let carry_z := Z.b2z carry in
-  let temporary := (Z.modulo (carry_z + left) base) in
-  let result := (Z.modulo (temporary + right) base) in
-  (not (and
-    (Z.lt temporary carry_z)
-    (Z.lt result right))).
-Proof.
-Admitted.
+  intros base carry left right left_bound right_bound carry_z.
+  generalize (bool_bound carry); lia.
+Qed.
 
 Theorem possible_remainders : forall base carry a b,
   0 <= a < base ->
@@ -122,18 +92,72 @@ Theorem possible_remainders : forall base carry a b,
     else
       (carry_z + a + b - base))).
 Proof.
-  (*
-  intros.
-  assert (0 <= a + b < 2*base) by lia.
-  destruct (Z.ltb (a + b) base) eqn:Bound.
+  intros base carry a b a_bound b_bound carry_z.
+  generalize
+    (digit_addition_bound
+      base carry a b a_bound b_bound); intros add_bound.
+  generalize (bool_bound carry); intros carry_bound.
+  destruct (Z.ltb (carry_z + a + b) base) eqn:bound.
   - apply Z.mod_small. lia.
-  - assert (0 <= a + b - base < base) by lia.
-    rewrite <- (Z.mod_add (a + b) (-1) base ltac:(lia)).
-    replace (a + b + (-1 * base)) with
-            (a + b - base) by lia.
+  - assert (0 <= carry_z + a + b - base < base) by lia.
+    rewrite <- (Z.mod_add (carry_z + a + b) (-1) base ltac:(lia)).
+    replace (carry_z + a + b + (-1 * base)) with
+        (carry_z + a + b - base) by lia.
     apply Z.mod_small. assumption.
-  *)
-Admitted.
+Qed.
+
+Theorem overflow_check : forall base a b,
+  0 <= a < base ->
+  0 <= b < base ->
+  let remainder := (Z.modulo (a + b) base) in
+  (eq
+    (remainder <? a)
+    (negb (a + b <? base))).
+Proof.
+  intros base a b a_bound b_bound.
+  replace (a + b) with (Z.b2z false + a + b) by reflexivity.
+  rewrite possible_remainders; try assumption.
+  simpl.
+  destruct
+    (a + b <? base)
+  eqn:condition_definition; lia.
+Qed.
+
+Theorem impossible_overflows : forall base carry left right,
+  1 < base ->
+  0 <= left < base ->
+  0 <= right < base ->
+  let carry_z := Z.b2z carry in
+  let temporary := (Z.modulo (carry_z + left) base) in
+  let result := (Z.modulo (temporary + right) base) in
+  (not (and
+    (Z.lt temporary carry_z)
+    (Z.lt result right))).
+Proof.
+  intros base carry left right base_big left_bound right_bound.
+  simpl.
+  Search Z.ltb.
+  rewrite <- Z.ltb_lt.
+  rewrite <- Z.ltb_lt.
+  generalize (bool_bound carry); intros carry_bound.
+  Check Z.mod_pos_bound.
+  generalize
+    (Z.mod_pos_bound (Z.b2z carry + left) base ltac:(lia));
+  intros.
+  rewrite overflow_check; try assumption; try lia.
+  replace 
+    ((Z.b2z carry + left) mod base + right)
+  with
+    (right + (Z.b2z carry + left) mod base)
+  by lia.
+  rewrite overflow_check; try assumption.
+  destruct
+    (Z.b2z carry + left <? base)
+  eqn:overflow0. lia.
+  replace (Z.b2z carry + left) with base by lia.
+  rewrite Z_mod_same_full.
+  lia.
+Qed.
 
 Theorem full_adders_agree :
   forall base carry n m,
@@ -148,7 +172,7 @@ Proof.
   unfold full_adder, theoretical_full_adder.
   apply pair_equal_spec; split. {
     rewrite
-      (overflow_check'
+      (overflow_check
         base (Z.b2z carry) n
         (bool_digit_bound base carry base_big) n_bound).
     destruct (Z.b2z carry + n <? base) eqn:overflow_0. {
@@ -158,7 +182,7 @@ Proof.
         (Z.mod_pos_bound 
           (Z.b2z carry + n) base ltac:(lia)); intros.
       rewrite
-        (overflow_check'
+        (overflow_check
           base m ((Z.b2z carry + n) mod base)
           m_bound ltac:(lia)).
       rewrite <-
@@ -169,19 +193,21 @@ Proof.
       generalize (bool_bound carry); intros.
       lia.
     } {
-      rewrite (Zplus_mod_idemp_l ((Z.b2z carry) + n) m base).
-      rewrite
-        (Z.add_comm ((Z.b2z carry) + n) m).
+      replace
+        ((Z.b2z carry + n) mod base + m)
+      with
+        (m + (Z.b2z carry + n) mod base)
+      by lia.
       rewrite
         (overflow_check
-          base carry m n); try lia.
+          base m ((Z.b2z carry + n) mod base)); try lia.
+      apply Z.mod_pos_bound. lia.
     }
   } {
     remember (Z.b2z carry) as carry_z eqn:carry_z_definition.
     apply (Zplus_mod_idemp_l (carry_z + n) m base).
   } 
 Qed.
-
 
 
 (**
@@ -222,6 +248,7 @@ Qed.
 
 Lemma add_back_to_bool :
   forall base carry left right,
+  1 < base ->
   0 <= left < base ->
   0 <= right < base ->
   let carry_z := Z.b2z carry in
@@ -236,14 +263,14 @@ Lemma add_back_to_bool :
         (Z.ltb temporary carry_z)
         (Z.ltb result right)))).
 Proof.
-  intros base carry left right left_bound right_bound
+  intros base carry left right base_big left_bound right_bound
   carry_z temporary result.
   destruct (temporary <? carry_z) eqn:overflow0;
   destruct (result <? right) eqn: overflow1;
   try reflexivity.
   generalize
     (impossible_overflows
-      base carry left right left_bound right_bound);
+      base carry left right base_big left_bound right_bound);
   intros contra.
   exfalso. simpl in contra; subst carry_z temporary result;
   lia.
