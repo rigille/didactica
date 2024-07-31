@@ -68,14 +68,14 @@ void number_add_inner(
     struct number* right,
     struct number* target
 ) {
-    size_t i = max_size_t(left->size, right->size);
+    size_t limit = target->size;
     uint64_t carry = 0;
-    for (size_t j = 0; j < i; j++) {
+    for (size_t j = 0; j < limit; j++) {
         uint64_t left_digit = number_get(left, j);
         uint64_t right_digit = number_get(right, j);
         uint64_t result = add_with_carry(
-                left_digit, right_digit,
-                carry, &carry
+            left_digit, right_digit,
+            carry, &carry
         );
         target->digits[j] = result;
     }
