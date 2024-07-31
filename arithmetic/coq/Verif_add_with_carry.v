@@ -28,8 +28,7 @@ Proof.
         Int64.modulus
         ltac:(rep_lia)).
     rep_lia.
-  - Search (eq (Int64.repr _) (Int64.repr _)).
-    apply Int64.eqm_samerepr. unfold Int64.eqm.
+  - apply Int64.eqm_samerepr. unfold Int64.eqm.
     unfold Zbits.eqmod. exists ((a + b)/Int64.modulus).
     rewrite (Z.mul_comm ((a + b)/Int64.modulus) Int64.modulus).
     apply Z_div_mod_eq_full.

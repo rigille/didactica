@@ -136,11 +136,9 @@ Theorem impossible_overflows : forall base carry left right,
 Proof.
   intros base carry left right base_big left_bound right_bound.
   simpl.
-  Search Z.ltb.
   rewrite <- Z.ltb_lt.
   rewrite <- Z.ltb_lt.
   generalize (bool_bound carry); intros carry_bound.
-  Check Z.mod_pos_bound.
   generalize
     (Z.mod_pos_bound (Z.b2z carry + left) base ltac:(lia));
   intros.

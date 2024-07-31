@@ -179,8 +179,6 @@ Definition number_compare_spec : ident * funspec :=
        (number_digits data1)))
    SEP (cnumber data0 n0; cnumber data1 n1).
 
-Check data_at.
-
 Definition add_with_carry_spec : ident * funspec :=
   DECLARE _add_with_carry
   WITH
