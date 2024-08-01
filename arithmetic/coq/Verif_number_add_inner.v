@@ -6,17 +6,18 @@ Require Import Didactica.number.
 Lemma body_number_add_inner: semax_body Vprog Gprog f_number_add_inner number_add_inner_spec.
 Proof.
   start_function.
-  forward. forward. unfold make_number. forward_call.
-  forward. forward. deadvars!. normalize.
+  forward. unfold make_number. forward.
   remember
-    (Z.max (Zlength (number_digits left))
-           (Zlength (number_digits right)))
-  as max_length.
-  forward_for_simple_bound max_length
+    (Zlength (add_digits
+      (number_digits left)
+      (number_digits right)))
+  as final_length.
+  forward_for_simple_bound
+  final_length
   (EX j: Z,
    PROP ()
    LOCAL (
-     temp _i (Vlong (Int64.repr max_length));
+     temp _limit (Vlong (Int64.repr final_length));
      lvar _carry tulong v_carry;
      temp _left left_pointer;
      temp _right right_pointer;
@@ -25,12 +26,10 @@ Proof.
      cnumber left left_pointer;
      cnumber right right_pointer;
      data_at Tsh tulong (Vlong (Int64.repr 0)) v_carry;
-     pre_cnumber output
-       (Zlength (add_digits (number_digits left) (number_digits right)))
-       output_pointer))%assert. {
-    unfold digit_bound in H, H2; rep_lia.
+     pre_cnumber output final_length output_pointer))%assert. {
+       admit. (* TODO *)
   } {
-    unfold cnumber, make_number; entailer!.
+    unfold cnumber, pre_cnumber, make_number; entailer!.
   } {
     admit.
   } {
