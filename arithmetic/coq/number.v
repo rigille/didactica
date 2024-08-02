@@ -245,5 +245,6 @@ Definition Gprog : funspecs := [
   number_get_spec;
   max_size_t_spec;
   number_compare_spec;
-  number_add_inner_spec
+  number_add_inner_spec;
+  add_with_carry_spec
 ].

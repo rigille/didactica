@@ -49,11 +49,26 @@ Proof.
           (Zrepeat Vundef (final_length - j)))
         (pre_number_array output)
     ))%assert. {
-       admit. (* TODO *)
+       unfold digit_bound in H; rep_lia.
   } {
-    admit.
+    replace 
+      (map (Vptrofs oo Ptrofs.repr) (sublist 0 0 total))
+    with (@nil val) by list_solve.
+    rewrite app_nil_l.
+    entailer!.  entailer!.
   } {
-    admit.
+    rewrite <- seq_assoc.
+    forward_call. forward. deadvars!.
+    rewrite <- seq_assoc.
+    forward_call. forward. deadvars!.
+    (* left_digit : Z, right_digit : Z,
+       carry_in : bool, carry_out : val *)
+    forward. (* forward_call (
+      (Znth i (number_digits left)),
+      (Znth i (number_digits right)),
+      false,
+      v_carry
+    ). *) admit.
   } {
     replace (final_length - final_length) with 0 by lia.
     unfold Zrepeat, Z.to_nat, repeat.
