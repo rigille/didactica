@@ -274,6 +274,20 @@ Proof.
   lia.
 Qed.
 
+Definition add_aux_body (base : Z) (record : (list Z) * bool) (current : Z * Z) :=
+  let (left, right) := current in
+  let (partial, carry_in) := record in
+  let (carry_out, sum) := full_adder base carry_in left right in
+  (partial ++ [sum], carry_out).
+
+(* TODO: use fold_map *)
+Definition add_aux' (base : Z) (carry : bool)
+  (digits : list (Z * Z)) : (list Z) * bool :=
+  fold_left
+    (add_aux_body base)
+    digits
+    ([], carry).
+
 Fixpoint add_aux (base : Z) (carry : bool)
   (digits : list (Z * Z)) : list Z :=
   match digits with
@@ -289,7 +303,7 @@ Fixpoint add_aux (base : Z) (carry : bool)
   end.
 
 Definition number_add (base : Z) (a b : list Z) : list Z :=
-  (add_aux base false (combine_default 0 0 a b)).
+  (fst (add_aux' base false (combine_default 0 0 a b))).
 
 Theorem full_adder_spec :
   forall base carry n m,
