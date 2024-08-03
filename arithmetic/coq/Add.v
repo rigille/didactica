@@ -302,8 +302,8 @@ Fixpoint add_aux (base : Z) (carry : bool)
       (add_aux base next_carry tail))
   end.
 
-Definition number_add (base : Z) (a b : list Z) : list Z :=
-  (fst (add_aux' base false (combine_default 0 0 a b))).
+Definition number_add (base : Z) (carry : bool) (a b : list Z) : list Z :=
+  (fst (add_aux' base carry (combine_default 0 0 a b))).
 
 Theorem full_adder_spec :
   forall base carry n m,

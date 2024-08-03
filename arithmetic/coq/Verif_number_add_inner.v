@@ -22,8 +22,9 @@ Proof.
   unfold pre_digit_array.
   forward_for_simple_bound
   final_length
-  (EX j: Z,
-   PROP ()
+  (EX j: Z, EX carry: bool,
+   PROP (
+   )
    LOCAL (
      temp _limit (Vlong (Int64.repr final_length));
      lvar _carry tulong v_carry;
@@ -33,7 +34,7 @@ Proof.
    SEP (
      cnumber left left_pointer;
      cnumber right right_pointer;
-     data_at Tsh tulong (Vlong (Int64.repr 0)) v_carry;
+     data_at Tsh tulong (Vlong (Int64.repr (Z.b2z carry))) v_carry;
      data_at
        (pre_number_share output)
        struct_number

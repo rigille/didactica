@@ -132,7 +132,7 @@ Definition comparison_int c : val :=
   | Gt => Vint (Int.repr 1)
   end.
 
-Definition add_digits : list Z -> list Z -> list Z :=
+Definition add_digits : bool -> list Z -> list Z -> list Z :=
   number_add Int64.modulus.
 
 Definition digits_full_adder : bool -> Z -> Z -> (bool * Z) :=

@@ -63,13 +63,13 @@ inline uint64_t add_with_carry(
 }
 #endif
 
-void number_add_inner(
+uint64_t number_add_inner(
     struct number* left,
     struct number* right,
-    struct number* target
+    struct number* target,
+    uint64_t carry
 ) {
     size_t limit = target->size;
-    uint64_t carry = 0;
     for (size_t j = 0; j < limit; j++) {
         uint64_t left_digit = number_get(left, j);
         uint64_t right_digit = number_get(right, j);
@@ -79,6 +79,7 @@ void number_add_inner(
         );
         target->digits[j] = result;
     }
+    return carry;
 }
 
 void number_multiply_inner(
