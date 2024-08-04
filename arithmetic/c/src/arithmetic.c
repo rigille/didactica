@@ -64,10 +64,10 @@ inline uint64_t add_with_carry(
 #endif
 
 uint64_t number_add_inner(
+    uint64_t carry,
     struct number* left,
     struct number* right,
-    struct number* target,
-    uint64_t carry
+    struct number* target
 ) {
     size_t limit = target->size;
     for (size_t j = 0; j < limit; j++) {

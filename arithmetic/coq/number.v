@@ -24,6 +24,7 @@ Record number_data := build_number_data {
 Record pre_number_data := build_pre_number_data {
   pre_number_share : share;
   pre_number_array : val;
+  pre_number_length : Z;
 }.
 
 Definition fill_number
@@ -31,7 +32,7 @@ Definition fill_number
   (build_number_data
     (pre_number_share data)
     (pre_number_array data)
-    digits).
+    (sublist 0 (pre_number_length data) digits)).
 
 (*
 Definition number_data_example :=
@@ -49,11 +50,10 @@ Definition digit_array
     (number_array data)).
 
 Definition pre_digit_array
-  {CS : compspecs} (data : pre_number_data)
-  (size : Z) :=
+  {CS : compspecs} (data : pre_number_data) :=
   (data_at_
     (pre_number_share data)
-    (tarray tulong size)
+    (tarray tulong (pre_number_length data))
     (pre_number_array data)).
 
 Definition digit_bound (digit : Z) :=
@@ -88,18 +88,18 @@ Definition cnumber {CS : compspecs}
       (digit_array data))).
 
 Definition pre_cnumber {CS : compspecs}
-  (data : pre_number_data) (size : Z) (pointer : val) :=
+  (data : pre_number_data) (pointer : val) :=
   (andp
     (prop (and
-      (digit_bound size)
+      (digit_bound (pre_number_length data))
       (writable_pre_number data)))
     (sepcon
       (data_at
         (pre_number_share data)
         struct_number
-        (make_number size (pre_number_array data))
+        (make_number (pre_number_length data) (pre_number_array data))
         pointer)
-      (pre_digit_array data size))).
+      (pre_digit_array data))).
 
 Arguments digit_array CS data : simpl never.
 Arguments pre_digit_array
@@ -215,30 +215,49 @@ Definition add_with_carry_spec : ident * funspec :=
 Definition number_add_inner_spec : ident * funspec :=
   DECLARE _number_add_inner
   WITH
-    left : number_data, left_pointer : val,
+    carry : bool, left : number_data, left_pointer : val,
     right : number_data, right_pointer : val,
     output : pre_number_data, output_pointer : val
-  PRE [ tptr struct_number, tptr struct_number, tptr struct_number ]
+  PRE [ tulong, tptr struct_number, tptr struct_number, tptr struct_number ]
     PROP ()
-    PARAMS (left_pointer; right_pointer; output_pointer)
+    PARAMS (
+      Vlong (Int64.repr (Z.b2z carry));
+      left_pointer; right_pointer; output_pointer)
     SEP (
       (cnumber left left_pointer);
       (cnumber right right_pointer);
-      (pre_cnumber output
-        (Zlength (add_digits
-          (number_digits left)
-          (number_digits right)))
-        output_pointer))
+      (pre_cnumber output output_pointer))
   POST [ tvoid ]
-    PROP ()
-    RETURN ()
+    EX carry_out : bool,
+    PROP (
+      let output_length := pre_number_length output in
+      let total :=
+        (add_digits
+          carry
+          (number_digits left)
+          (number_digits right)) in
+      let total_length := Zlength total in
+      let trail_left :=
+        (sublist output_length total_length (number_digits left)) in
+      let trail_right :=
+        (sublist output_length total_length (number_digits right)) in
+      (eq
+        (add_digits
+          carry_out
+          trail_left
+          trail_right)
+        (sublist
+          output_length
+          total_length
+          total)))
+    RETURN (Vlong (Int64.repr (Z.b2z carry_out)))
     SEP (
       (cnumber left left_pointer);
       (cnumber right right_pointer);
       (cnumber
         (fill_number
           output
-          (add_digits (number_digits left) (number_digits right)))
+          (add_digits carry (number_digits left) (number_digits right)))
         output_pointer)).
 
 Definition Gprog : funspecs := [
