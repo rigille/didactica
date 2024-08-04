@@ -5,7 +5,7 @@ all: c coq
 c:
 	$(MAKE) -C c
 coq/arithmetic.v: c/src/arithmetic.c
-	clightgen -normalize c/src/arithmetic.c -o coq/arithmetic.v
+	clightgen -normalize c/src/arithmetic.c -o coq/arithmetic.v -Xpreprocessor -Wno-cpp
 
 coq: coq/arithmetic.v
 	$(MAKE) -C coq

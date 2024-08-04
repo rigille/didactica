@@ -1,6 +1,6 @@
 # Compiler and flags
 CC := ccomp
-CFLAGS := -O
+CFLAGS := -O -Xpreprocessor -Wno-cpp
 AR := ar
 ARFLAGS := rcs
 
