@@ -6,27 +6,28 @@ Require Import VST.floyd.library.
 Require Import Didactica.arithmetic.
 Require Import Didactica.number.
 
-Lemma body_number_add_inner: semax_body Vprog Gprog f_number_add_inner number_add_inner_spec.
+Lemma body_number_add_inner: semax_body Vprog Gprog f_number_add_inner number_add_inner_full_spec.
 Proof.
   start_function.
   forward. unfold make_number. forward.
-  remember 
+  (*remember 
     (add_digits
+      carry
       (number_digits left)
       (number_digits right))
   as total.
   remember
     (Zlength total)
-  as final_length.
+  as final_length. *)
   (* TODO: prove theorems so that unfolding here is not necessary *)
-  unfold pre_digit_array.
+  unfold pre_digit_array, make_number.
   forward_for_simple_bound
-  final_length
-  (EX j: Z, EX carry: bool,
+  (pre_number_length output)
+  (EX j: Z, EX carry_out: bool,
    PROP (
    )
    LOCAL (
-     temp _limit (Vlong (Int64.repr final_length));
+     temp _limit (Vlong (Int64.repr (pre_number_length output)));
      lvar _carry tulong v_carry;
      temp _left left_pointer;
      temp _right right_pointer;
@@ -38,11 +39,11 @@ Proof.
      data_at
        (pre_number_share output)
        struct_number
-       (Vptrofs (Ptrofs.repr final_length), pre_number_array output)
+       (Vptrofs (Ptrofs.repr (pre_number_length output)), pre_number_array output)
        output_pointer;
       data_at
         (pre_number_share output)
-        (tarray tulong final_length)
+        (tarray tulong (pre_number_length output))
         (app
           (map
             (Vptrofs oo Ptrofs.repr)

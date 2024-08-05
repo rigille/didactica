@@ -212,7 +212,7 @@ Definition add_with_carry_spec : ident * funspec :=
         carry_out)
     ).
 
-Definition number_add_inner_spec : ident * funspec :=
+Definition number_add_inner_full_spec : ident * funspec :=
   DECLARE _number_add_inner
   WITH
     carry : bool, left : number_data, left_pointer : val,
@@ -227,7 +227,7 @@ Definition number_add_inner_spec : ident * funspec :=
       (cnumber left left_pointer);
       (cnumber right right_pointer);
       (pre_cnumber output output_pointer))
-  POST [ tvoid ]
+  POST [ tulong ]
     EX carry_out : bool,
     PROP (
       let output_length := pre_number_length output in
@@ -264,6 +264,6 @@ Definition Gprog : funspecs := [
   number_get_spec;
   max_size_t_spec;
   number_compare_spec;
-  number_add_inner_spec;
+  number_add_inner_full_spec;
   add_with_carry_spec
 ].
