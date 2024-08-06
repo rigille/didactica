@@ -215,19 +215,24 @@ Definition add_with_carry_spec : ident * funspec :=
 Definition number_add_inner_full_spec : ident * funspec :=
   DECLARE _number_add_inner
   WITH
-    carry : bool, left : number_data, left_pointer : val,
-    right : number_data, right_pointer : val,
+    carry : bool, carry_pointer : val, left : number_data,
+    left_pointer : val, right : number_data, right_pointer : val,
     output : pre_number_data, output_pointer : val
-  PRE [ tulong, tptr struct_number, tptr struct_number, tptr struct_number ]
+  PRE [ tptr tulong, tptr struct_number, tptr struct_number, tptr struct_number ]
     PROP ()
     PARAMS (
-      Vlong (Int64.repr (Z.b2z carry));
+      carry_pointer;
       left_pointer; right_pointer; output_pointer)
     SEP (
+      (data_at
+        Tsh
+        tulong
+        (Vlong (Int64.repr (Z.b2z carry)))
+        carry_pointer);
       (cnumber left left_pointer);
       (cnumber right right_pointer);
       (pre_cnumber output output_pointer))
-  POST [ tulong ]
+  POST [ tvoid ]
     EX carry_out : bool,
     PROP (
       let output_length := pre_number_length output in
@@ -250,8 +255,13 @@ Definition number_add_inner_full_spec : ident * funspec :=
           output_length
           total_length
           total)))
-    RETURN (Vlong (Int64.repr (Z.b2z carry_out)))
+    RETURN ()
     SEP (
+      (data_at
+        Tsh
+        tulong
+        (Vlong (Int64.repr (Z.b2z carry_out)))
+        carry_pointer);
       (cnumber left left_pointer);
       (cnumber right right_pointer);
       (cnumber

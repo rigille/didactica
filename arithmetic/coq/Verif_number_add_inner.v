@@ -9,7 +9,7 @@ Require Import Didactica.number.
 Lemma body_number_add_inner: semax_body Vprog Gprog f_number_add_inner number_add_inner_full_spec.
 Proof.
   start_function.
-  forward. deadvars!. forward. unfold make_number.
+  forward. unfold make_number.
   (*remember 
     (add_digits
       carry
@@ -50,10 +50,12 @@ Proof.
          total)))
    LOCAL (
      temp _limit (Vptrofs (Ptrofs.repr limit));
-     temp _carry (Vlong (Int64.repr (Z.b2z carry))); 
-     temp _left left_pointer; temp _right right_pointer;
+     temp _carry carry_pointer;
+     temp _left left_pointer;
+     temp _right right_pointer;
      temp _target output_pointer)
    SEP (
+     data_at Tsh tulong (Vlong (Int64.repr (Z.b2z carry_out))) carry_pointer;
      (cnumber left left_pointer);
      (cnumber right right_pointer);
      data_at
@@ -68,16 +70,22 @@ Proof.
           (map
             (Vptrofs oo Ptrofs.repr)
             (sublist 0 j total))
-          (Zrepeat Vundef (total_length - j)))
+          (Zrepeat Vundef (limit - j)))
         (pre_number_array output)))%assert. {
        unfold digit_bound in H; rep_lia.
   } {
+       unfold digit_bound in H; rep_lia.
+  } {
+    Exists carry. entailer!.
+    admit. admit. (*
     replace 
       (map (Vptrofs oo Ptrofs.repr) (sublist 0 0 total))
     with (@nil val) by list_solve.
     rewrite app_nil_l.
     entailer!.  entailer!.
+    *)
   } {
+    admit. (*
     rewrite <- seq_assoc.
     forward_call. forward. deadvars!.
     rewrite <- seq_assoc.
@@ -89,19 +97,35 @@ Proof.
       (Znth i (number_digits right)),
       false,
       v_carry
-    ). *) admit.
+    ). *) *)
   } {
-    replace (final_length - final_length) with 0 by lia.
+    Intros carry_out.
+    Exists carry_out.
+    entailer!.
+    replace (pre_number_length output - pre_number_length output) with 0 by lia.
     unfold Zrepeat, Z.to_nat, repeat.
     replace
-      (map (Vptrofs oo Ptrofs.repr) (sublist 0 final_length total) ++ [])
+      (map ((fun x : ptrofs => Vlong (Ptrofs.to_int64 x)) oo Ptrofs.repr)
+         (sublist 0 (pre_number_length output)
+            (add_digits carry (number_digits left) (number_digits right))) ++
+       [])
     with
-      (map (Vptrofs oo Ptrofs.repr) total)
+      (map (Vptrofs oo Ptrofs.repr) (sublist 0 (pre_number_length output)
+            (add_digits carry (number_digits left) (number_digits right))))
     by list_solve.
+    unfold fill_number.
     unfold cnumber, make_number, fill_number, writable_pre_number,
-    readable_number.
+    readable_number, digit_array. simpl.
+    replace
+      (Zlength
+        (sublist 0 (pre_number_length output)
+           (add_digits carry (number_digits left)
+              (number_digits right))))
+    with
+      (pre_number_length output)
+    by admit.
     entailer!. {
       admit. (* TODO prove that addition repects bounds *)
-    } 
+    }
   }
 Admitted.
