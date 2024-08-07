@@ -3,19 +3,7 @@ Require Import VST.floyd.library.
 Require Import Didactica.arithmetic.
 Require Import Didactica.Main.
 Require Import Didactica.number.
-
-Lemma sublist_clamp_high: forall i u (d : list Z),
-  Zlength d <= u ->
-  sublist i u d = sublist i (Zlength d) d.
-Proof.
-  intros.
-  unfold sublist.
-  rewrite firstn_same.
-  rewrite firstn_same.
-  reflexivity.
-  rewrite <- ZtoNat_Zlength. lia.
-  rewrite <- ZtoNat_Zlength. lia.
-Qed.
+Require Import Didactica.sublist.
 
 Lemma Znth_to_nth: forall i (d : list Z),
   0 <= i ->

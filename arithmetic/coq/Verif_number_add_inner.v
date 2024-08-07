@@ -5,22 +5,12 @@ Require Import VST.floyd.library.
 
 Require Import Didactica.arithmetic.
 Require Import Didactica.number.
+Require Import Didactica.sublist.
 
 Lemma body_number_add_inner: semax_body Vprog Gprog f_number_add_inner number_add_inner_full_spec.
 Proof.
   start_function.
   forward. unfold make_number.
-  (*remember 
-    (add_digits
-      carry
-      (number_digits left)
-      (number_digits right))
-  as total.
-  remember
-    (Zlength total)
-  as final_length.
-  unfold pre_digit_array, make_number. *)
-  (* TODO: prove theorems so that unfolding here is not necessary *)
   remember (pre_number_length output) as limit.
   remember
     (add_digits
@@ -77,13 +67,36 @@ Proof.
        unfold digit_bound in H; rep_lia.
   } {
     Exists carry. entailer!.
-    admit. admit. (*
-    replace 
-      (map (Vptrofs oo Ptrofs.repr) (sublist 0 0 total))
-    with (@nil val) by list_solve.
-    rewrite app_nil_l.
-    entailer!.  entailer!.
-    *)
+    remember
+      (add_digits
+        carry
+        (number_digits left)
+        (number_digits right))
+    as total.
+    remember
+      (Zlength total)
+    as total_length.
+    assert
+      ((Zlength (number_digits left)) <= total_length) by admit.
+    rewrite sublist_clamp_high; try assumption.
+    assert
+      ((Zlength (number_digits right)) <= total_length) by admit.
+    rewrite (sublist_clamp_high 0 total_length); try assumption.
+    replace
+      (sublist 0 (Zlength (number_digits left)) (number_digits left))
+    with
+      (number_digits left)
+    by list_solve.
+    replace
+      (sublist
+        0 (Zlength (number_digits right)) (number_digits right))
+    with
+      (number_digits right)
+    by list_solve.
+    replace (sublist 0 total_length total) with total by list_solve.
+    symmetry. apply Heqtotal.
+    simpl. unfold pre_digit_array.
+    entailer!.
   } {
     admit. (*
     rewrite <- seq_assoc.
