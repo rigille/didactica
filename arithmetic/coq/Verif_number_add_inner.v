@@ -98,19 +98,28 @@ Proof.
     simpl. unfold pre_digit_array.
     entailer!.
   } {
-    admit. (*
+    rewrite <- seq_assoc.
+    forward_call. Intros vret; subst vret.
+    forward. deadvars!. 
     rewrite <- seq_assoc.
     forward_call. forward. deadvars!.
-    rewrite <- seq_assoc.
-    forward_call. forward. deadvars!.
-    (* left_digit : Z, right_digit : Z,
-       carry_in : bool, carry_out : val *)
-    forward. (* forward_call (
-      (Znth i (number_digits left)),
-      (Znth i (number_digits right)),
-      false,
-      v_carry
-    ). *) *)
+    forward. rewrite <- seq_assoc.
+    unfold cnumber. Intros.
+    forward_call.
+    split;
+    apply Znth_bounded;
+    unfold digit_bound; try assumption; try rep_lia.
+    forward. forward. forward.
+    Exists
+      (fst
+        (digits_full_adder carry_out (Znth i (number_digits left))
+                      (Znth i (number_digits right)))).
+    unfold cnumber.
+    entailer!. {
+      admit.
+    } {
+      admit.
+    }
   } {
     Intros carry_out.
     Exists carry_out.

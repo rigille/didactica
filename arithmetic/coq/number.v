@@ -110,7 +110,7 @@ Arguments cnumber CS data pointer : simpl never.
 Lemma cnumber_local_facts:
   forall data pointer,
    cnumber data pointer |--
-       !! (isptr pointer /\ digit_bound (Zlength (number_digits data))).
+       !! (isptr pointer /\ digit_bound (Zlength (number_digits data)) /\ (Forall digit_bound (number_digits data))).
 Proof.
   intros. unfold cnumber. entailer!.
 Qed.
