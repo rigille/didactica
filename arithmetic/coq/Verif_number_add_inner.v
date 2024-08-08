@@ -109,22 +109,53 @@ Proof.
     split;
     apply Znth_bounded;
     unfold digit_bound; try assumption; try rep_lia.
-    forward. forward. forward.
-    Exists
-      (fst
-        (digits_full_adder carry_out (Znth i (number_digits left))
-                      (Znth i (number_digits right)))).
+    forward. deadvars!.
+    remember
+      (digits_full_adder carry_out
+        (Znth i (number_digits left))
+        (Znth i (number_digits right)))
+    as full_adder_result.
+    remember (snd full_adder_result) as new_digit.
+    remember (fst full_adder_result) as new_carry.
+    forward. forward.
+    Exists new_carry.
+    replace 
+      (upd_Znth i
+        (app
+          (map
+            (Vptrofs oo Ptrofs.repr)
+            (sublist 0 i total))
+          (Zrepeat Vundef (limit - i)))
+        (Vlong (Int64.repr new_digit)))
+    with
+      (app
+        (map (Vptrofs oo Ptrofs.repr) (sublist 0 (i + 1) total))
+        (Zrepeat Vundef (limit - (i + 1)))).
+    replace
+      (add_digits new_carry
+            (sublist (i + 1) total_length (number_digits left))
+            (sublist (i + 1) total_length (number_digits right)))
+    with
+      (sublist (i + 1) total_length total).
     unfold cnumber.
     entailer!. {
+      (* proof carry is correct *)
       admit.
     } {
+      (* proof that written digit is correct *)
+      Check Zrepeat_app.   (* Hint: this lemma will be useful. *)
+      Check upd_Znth_app1. (* Hint: this lemma will be useful. *)
+      Check app_Znth2.     (* Hint: this lemma will be useful. *)
+      Check Znth_0_cons.   (* Hint: this lemma will be useful. *)
       admit.
     }
   } {
     Intros carry_out.
     Exists carry_out.
     entailer!.
-    replace (pre_number_length output - pre_number_length output) with 0 by lia.
+    replace
+      (pre_number_length output - pre_number_length output)
+    with 0 by lia.
     unfold Zrepeat, Z.to_nat, repeat.
     replace
       (map ((fun x : ptrofs => Vlong (Ptrofs.to_int64 x)) oo Ptrofs.repr)
