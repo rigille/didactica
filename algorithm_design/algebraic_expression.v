@@ -42,7 +42,6 @@ Example associate_test0 :
       [x; y; z])
     ((x + y) + z)).
 Proof.
-  intros. unfold associate, associate_inner. simpl.
   reflexivity.
 Qed.
 
@@ -54,7 +53,6 @@ Example associate_test1 :
       [x; y; z])
     (x + (y + z))).
 Proof.
-  intros. unfold associate, associate_inner. simpl.
   reflexivity.
 Qed.
 

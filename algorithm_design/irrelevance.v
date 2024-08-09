@@ -32,5 +32,5 @@ Definition safe_head {X : Type} (l : list X) : forall (H: length l > 0), X :=
 Theorem safe_head_equal : forall X (l : list X) H H',
   safe_head l H = safe_head l H'.
 Proof.
-  intros X l. unfold safe_head. apply unused_does_not_matter.
+  intros X l. apply unused_does_not_matter.
 Qed.
