@@ -27,12 +27,21 @@ Record pre_number_data := build_pre_number_data {
   pre_number_length : Z;
 }.
 
+Check Zrepeat.
+Locate "-".
+
 Definition fill_number
   (data : pre_number_data) (digits : list Z) := 
   (build_number_data
     (pre_number_share data)
     (pre_number_array data)
-    (sublist 0 (pre_number_length data) digits)).
+    (app
+      (sublist 0 (pre_number_length data) digits)
+      (Zrepeat
+        0
+        (Z.sub
+          (pre_number_length data)
+          (Zlength digits))))).
 
 (*
 Definition number_data_example :=

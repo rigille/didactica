@@ -169,16 +169,24 @@ Proof.
     unfold fill_number.
     unfold cnumber, make_number, fill_number, writable_pre_number,
     readable_number, digit_array. simpl.
+    admit. (*
     replace
       (Zlength
         (sublist 0 (pre_number_length output)
-           (add_digits carry (number_digits left)
-              (number_digits right))))
+           (add_digits
+             carry
+             (number_digits left)
+             (number_digits right)) ++
+         Zrepeat 0
+           (pre_number_length output
+              - Zlength
+                  (add_digits carry (number_digits left)
+                     (number_digits right)))))
     with
       (pre_number_length output)
     by admit.
     entailer!. {
       admit. (* TODO prove that addition repects bounds *)
-    }
+    } *)
   }
 Admitted.
