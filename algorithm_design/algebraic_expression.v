@@ -1,44 +1,80 @@
 Require Import BinInt List ZArith.
+Require Import Lia.
 Import ListNotations.
 
 Local Open Scope list_scope.
 Local Open Scope Z_scope.
 
+Definition unused (X : Prop) (Y : Type) :=
+  sum (X -> False) Y.
+
+Definition lift {X : Prop} {Y: Type} (t : unused X Y) : X -> Y :=
+  fun x =>
+    match t with
+    | inl contradiction => False_rect Y (contradiction x)
+    | inr value => value
+    end.
+
+Theorem unused_does_not_matter : forall X Y (pre_value : unused X Y) (x x': X),
+  (eq (lift pre_value x) (lift pre_value x')).
+Proof.
+  intros.
+  destruct pre_value.
+  - exfalso. apply (f x).
+  - reflexivity.
+Qed.
+
+
 Definition push := true.
 Definition pop := false.
 
-Fixpoint associate_inner
-  (ops : list bool)
-  (terms : list Z)
-  (top : Z)
-  (stack : list Z) : Z :=
-  match ops with
-  | [] => top
-  | hop :: opt =>
-    match hop with
-    | true =>
-      match terms with
-      | [] => top
-      | n :: terms' =>
-        associate_inner opt terms' n (top :: stack)
-      end
-    | false =>
-      match stack with
-      | [] => top
-      | sh :: st =>
-        associate_inner opt terms (sh + top) st
-      end
-    end
+Inductive tree : Type :=
+  | Tip
+  | Node (left : tree) (right : tree).
+
+Fixpoint size (t : tree) : nat :=
+  match t with
+  | Tip => 1
+  | Node l r => (size l) + (size r)
   end.
 
-Definition associate (ops : list bool) (terms : list Z) :=
-  associate_inner ops terms 0 [].
+
+Theorem one_not_zero : (le 1 0) -> False.
+Proof.
+  intros. lia.
+Qed.
+
+Theorem slack_left : forall i j k, ((le i k) -> False) -> ((le (i + j) k) -> False).
+Proof.
+  intros. lia.
+Qed.
+
+Theorem slack_right : forall i j k, ((le j k) -> False) -> ((le (i + j) k) -> False).
+Proof.
+  intros. lia.
+Qed.
+
+Fixpoint associate_aux (ops : tree) (terms : list Z) : Z * (list Z) :=
+  match ops with
+  | Tip =>
+      match terms with
+      | [] => (0, [])
+      | h :: t => (h, t)
+      end
+  | Node l r =>
+      let (sl, terms') := associate_aux l terms in
+      let (sr, terms'') := associate_aux r terms' in
+      (sl + sr, terms'')
+  end.
+
+Definition associate (ops : tree) (terms : list Z) :=
+  (fst (associate_aux ops terms)).
 
 Example associate_test0 :
   forall x y z : Z,
   (eq
     (associate
-      [true; false; true; false; true; false]
+      (Node (Node Tip Tip) Tip)
       [x; y; z])
     ((x + y) + z)).
 Proof.
@@ -49,16 +85,38 @@ Example associate_test1 :
   forall x y z : Z,
   (eq
     (associate
-      [true; true; true; false; false; false]
+      (Node Tip (Node Tip Tip))
       [x; y; z])
     (x + (y + z))).
 Proof.
   reflexivity.
 Qed.
 
-Fixpoint list_eqb (l1 l2 : list bool) : bool :=
-  match l1, l2 with
-  | [], [] => true
-  | x1 :: xs1, x2 :: xs2 => (Bool.eqb x1 x2) && (list_eqb xs1 xs2)
-  | _, _ => false
-  end.
+Definition add (a b : tree * list Z) : tree * list Z :=
+  (Node (fst a) (fst b), (snd a) ++ (snd b)).
+
+Definition wrap (a : Z) : tree * list Z := (Tip, [a]).
+
+Theorem associate_correctness : forall (a b : tree) (t : list Z),
+  if (Nat.eqb (size a) (size b)) then
+    associate a t = associate b t
+  else
+    True.
+Proof.
+Admitted.
+
+Theorem scary_association : forall a b c d e f g,
+  (eq
+    ((((a + b) + (c + d)) + e) + (f + g))
+    ((((a + (b + c) + d) + e) + f) + g)).
+Proof.
+  intros.
+  apply
+    (associate_correctness
+      (Node (Node (Node (Node Tip Tip) (Node Tip Tip)) Tip) (Node Tip Tip))
+      (Node (Node (Node (Node (Node Tip (Node Tip Tip)) Tip) Tip) Tip) Tip)
+      [a; b; c; d; e; f; g]).
+Qed.
+
+
+
