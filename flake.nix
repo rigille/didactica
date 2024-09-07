@@ -36,7 +36,7 @@
             ];
             shellHook = ''
                 export SYSTEM=${system}
-                export CHEZSCHEMELIBDIRS=$(find ${./scheme} -type d -printf '%p:' | sed 's/:$//')
+                export CHEZSCHEMELIBDIRS=$(find $(pwd)/scheme -type d -printf '%p:' | sed 's/:$//')
             '';
 
             # Tools from packages
