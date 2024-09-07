@@ -13,7 +13,7 @@
       in
       {
         packages = {
-          guessing_game = ((import "${self}/guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
+          #guessing_game = ((import "${self}/scheme/guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
         };
 
         devShells = {
@@ -36,11 +36,12 @@
             ];
             shellHook = ''
                 export SYSTEM=${system}
+                export CHEZSCHEMELIBDIRS=$(find ${./scheme} -type d -printf '%p:' | sed 's/:$//')
             '';
 
             # Tools from packages
             inputsFrom = [
-              self.packages.${system}.guessing_game
+              #self.packages.${system}.guessing_game
             ];
           };
         };
