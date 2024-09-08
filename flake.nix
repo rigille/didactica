@@ -10,10 +10,39 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        chez = pkgs.chez;
       in
       {
         packages = {
-          #guessing_game = ((import "${self}/scheme/guessing_game") { pkgs=nixpkgs.legacyPackages.${system}; });
+          guessing-game = pkgs.stdenv.mkDerivation {
+              name = "guessing-game";
+              
+              src = ./scheme;
+              
+              buildInputs = [ chez ];
+              
+              buildPhase = ''
+                export CHEZSCHEMELIBDIRS=$(find . -type d -printf '%p:' | sed 's/:$//')
+                ${chez}/bin/scheme -q <<EOF
+                (import (chezscheme))
+                (optimize-level 2)
+                (generate-wpo-files #t)
+                (compile-imported-libraries #t)
+                (compile-program "guessing-game/bin/guessing-game.scm")
+                (compile-whole-program "guessing-game/bin/guessing-game.wpo" "guessing-game.so"))
+                (make-boot-file "guessing-game.boot" '("scheme" "petite") "guessing-game.so")
+                (exit)
+                EOF
+              '';
+
+              installPhase = ''
+                mkdir -p $out/bin $out/lib
+                cp guessing-game.boot $out/lib
+                echo '#!/bin/sh' > $out/bin/guessing-game
+                echo '${chez}/bin/scheme --boot "'$out'/lib/guessing-game.boot" "$@"' >> $out/bin/guessing-game
+                chmod +x $out/bin/guessing-game
+              '';
+            };
         };
 
         devShells = {
@@ -22,7 +51,7 @@
             packages = [
               pkgs.gcc14
               pkgs.clang
-              pkgs.chez-racket
+              pkgs.chez
               pkgs.coq_8_17
               (pkgs.coqPackages_8_17.VST.overrideAttrs (final: previous: {
                 src = pkgs.fetchFromGitHub {
