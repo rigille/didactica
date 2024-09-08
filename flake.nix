@@ -11,37 +11,14 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         chez = pkgs.chez;
+        zb = import ./nix/zbasu.nix { inherit pkgs; };
       in
       {
         packages = {
-          guessing-game = pkgs.stdenv.mkDerivation {
+          guessing-game = zb.buildChezPackage {
               name = "guessing-game";
-              
+              package = "guessing-game";
               src = ./scheme;
-              
-              buildInputs = [ chez ];
-              
-              buildPhase = ''
-                export CHEZSCHEMELIBDIRS=$(find . -type d -printf '%p:' | sed 's/:$//')
-                ${chez}/bin/scheme -q <<EOF
-                (import (chezscheme))
-                (optimize-level 2)
-                (generate-wpo-files #t)
-                (compile-imported-libraries #t)
-                (compile-program "guessing-game/bin/guessing-game.scm")
-                (compile-whole-program "guessing-game/bin/guessing-game.wpo" "guessing-game.so"))
-                (make-boot-file "guessing-game.boot" '("scheme" "petite") "guessing-game.so")
-                (exit)
-                EOF
-              '';
-
-              installPhase = ''
-                mkdir -p $out/bin $out/lib
-                cp guessing-game.boot $out/lib
-                echo '#!/bin/sh' > $out/bin/guessing-game
-                echo '${chez}/bin/scheme --boot "'$out'/lib/guessing-game.boot" "$@"' >> $out/bin/guessing-game
-                chmod +x $out/bin/guessing-game
-              '';
             };
         };
 
