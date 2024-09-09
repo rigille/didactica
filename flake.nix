@@ -19,7 +19,12 @@
               name = "guessing-game";
               package = "guessing-game";
               src = ./scheme;
-            };
+          };
+          ciska = zb.buildChezPackage {
+              name = "ciska";
+              package = "ciska";
+              src = ./scheme;
+          };
         };
 
         devShells = {

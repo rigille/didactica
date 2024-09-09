@@ -1,7 +1,7 @@
 { pkgs }:
 
 {
-  buildChezPackage = { package, name, src, buildInputs ? [], chez ? pkgs.chez, extraBuildInputs ? [] }:
+  buildChezPackage = { package, name, src, optimize-level ? 2, buildInputs ? [], chez ? pkgs.chez, extraBuildInputs ? [] }:
     pkgs.stdenv.mkDerivation {
       inherit name src;
       
@@ -11,10 +11,10 @@
         export CHEZSCHEMELIBDIRS=$(find . -type d -printf '%p:' | sed 's/:$//')
         ${chez}/bin/scheme -q <<EOF
         (import (chezscheme))
-        (optimize-level 2)
+        (optimize-level ${toString optimize-level})
         (generate-wpo-files #t)
         (compile-imported-libraries #t)
-        (compile-program "${package}/bin/${name}.scm")
+        (compile-program "${package}/bin/${name}.ss")
         (compile-whole-program "${package}/bin/${name}.wpo" "${name}.so")
         (make-boot-file "${name}.boot" '("scheme" "petite") "${name}.so")
         (exit)
