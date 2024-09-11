@@ -24,8 +24,9 @@
       installPhase = ''
         mkdir -p $out/bin $out/lib
         cp ${name}.boot $out/lib
+        find . -type f -name "*.so" -print0 | xargs -0 -I {} cp {} $out/lib
         echo '#!/bin/sh' > $out/bin/${name}
-        echo '${chez}/bin/scheme --boot "'$out'/lib/${name}.boot" "$@"' >> $out/bin/${name}
+        echo '${chez}/bin/scheme --boot "'$out'/lib/${name}.boot" --libdirs "'$out'/lib" "$@"' >> $out/bin/${name}
         chmod +x $out/bin/${name}
       '';
     };
