@@ -13,4 +13,4 @@
   (define (event-loop state)
     (display ":")
     (let ((command (get-datum (current-input-port))))
-      (event-loop ((eval command (environment '(rnrs) '(ciska-commands))) state)))))
+      (event-loop ((eval command (environment '(rnrs) '(ciska-commands) '(chezscheme))) state)))))

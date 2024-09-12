@@ -11,6 +11,10 @@
         (load second)
         (load first))
       (if (null? fns)
-        (event-loop (make-editor-state '() '()))
+        (event-loop (make-editor-state 0 '() '()))
         (let ((filename (car fns)))
-            (event-loop (load-file filename)))))))
+          (begin
+            (display "loading ")
+            (display filename)
+            (display "...\n")
+            (event-loop (load-file filename))))))))
