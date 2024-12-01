@@ -77,9 +77,11 @@ Proof.
       (Zlength total)
     as total_length.
     assert
+      (* TODO: verify that the size bound implies a length bound *)
       ((Zlength (number_digits left)) <= total_length) by admit.
     rewrite sublist_clamp_high; try assumption.
     assert
+      (* TODO: verify that the size bound implies a length bound *)
       ((Zlength (number_digits right)) <= total_length) by admit.
     rewrite (sublist_clamp_high 0 total_length); try assumption.
     replace
@@ -169,6 +171,8 @@ Proof.
     unfold fill_number.
     unfold cnumber, make_number, fill_number, writable_pre_number,
     readable_number, digit_array. simpl.
+    (* Proof that loop invariant implies spec *)
+    entailer!.
     admit. (*
     replace
       (Zlength
