@@ -35,6 +35,7 @@
               pkgs.clang
               pkgs.chez
               pkgs.coq_8_17
+              pkgs.coqPackages_8_17.coq-ext-lib
               (pkgs.coqPackages_8_17.VST.overrideAttrs (final: previous: {
                 src = pkgs.fetchFromGitHub {
                   owner = "PrincetonUniversity";
