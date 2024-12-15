@@ -16,28 +16,23 @@ Proof.
     (add_digits
       carry
       (number_digits left)
-      (number_digits right))
-  as total.
-  remember
-    (Zlength total)
-  as total_length.
+      (number_digits right)
+      (Z.to_nat limit))
+  as final_results.
+  remember (fst final_results) as total.
   forward_for_simple_bound
   limit
   (EX j : Z, EX carry_out : bool,
+   EX results : list Z * bool,
    PROP (
-     let trail_left :=
-       (sublist j total_length (number_digits left)) in
-     let trail_right :=
-       (sublist j total_length (number_digits right)) in
-     (eq
+     results =
        (add_digits
-         carry_out
-         trail_left
-         trail_right)
-       (sublist
-         j
-         total_length
-         total)))
+         carry
+         (number_digits left)
+         (number_digits right)
+         (Z.to_nat j));
+     carry_out = (snd results)
+   )
    LOCAL (
      temp _limit (Vptrofs (Ptrofs.repr limit));
      temp _carry carry_pointer;
@@ -45,7 +40,7 @@ Proof.
      temp _right right_pointer;
      temp _target output_pointer)
    SEP (
-     data_at Tsh tulong (Vlong (Int64.repr (Z.b2z carry_out))) carry_pointer;
+     bool_at carry_out carry_pointer;
      (cnumber left left_pointer);
      (cnumber right right_pointer);
      data_at
@@ -59,50 +54,23 @@ Proof.
         (app
           (map
             (Vptrofs oo Ptrofs.repr)
-            (sublist 0 j total))
+            (fst results))
           (Zrepeat Vundef (limit - j)))
         (pre_number_array output)))%assert. {
        unfold digit_bound in H; rep_lia.
   } {
        unfold digit_bound in H; rep_lia.
   } {
-    Exists carry. entailer!.
-    remember
-      (add_digits
-        carry
-        (number_digits left)
-        (number_digits right))
-    as total.
-    remember
-      (Zlength total)
-    as total_length.
-    assert
-      (* TODO: verify that the size bound implies a length bound *)
-      ((Zlength (number_digits left)) <= total_length) by admit.
-    rewrite sublist_clamp_high; try assumption.
-    assert
-      (* TODO: verify that the size bound implies a length bound *)
-      ((Zlength (number_digits right)) <= total_length) by admit.
-    rewrite (sublist_clamp_high 0 total_length); try assumption.
-    replace
-      (sublist 0 (Zlength (number_digits left)) (number_digits left))
-    with
-      (number_digits left)
-    by list_solve.
-    replace
-      (sublist
-        0 (Zlength (number_digits right)) (number_digits right))
-    with
-      (number_digits right)
-    by list_solve.
-    replace (sublist 0 total_length total) with total by list_solve.
-    symmetry. apply Heqtotal.
-    simpl. unfold pre_digit_array.
+    Exists carry.
+    Exists (@nil Z, carry).
+    entailer!. rewrite app_nil_l.
+    unfold pre_digit_array.
     entailer!.
   } {
+    (* prove loop invariant is preserved *)
     rewrite <- seq_assoc.
     forward_call. Intros vret; subst vret.
-    forward. deadvars!. 
+    forward. deadvars!.
     rewrite <- seq_assoc.
     forward_call. forward. deadvars!.
     forward. rewrite <- seq_assoc.
@@ -121,7 +89,7 @@ Proof.
     remember (fst full_adder_result) as new_carry.
     forward. forward.
     Exists new_carry.
-    replace 
+    (*replace
       (upd_Znth i
         (app
           (map
@@ -140,57 +108,30 @@ Proof.
     with
       (sublist (i + 1) total_length total).
     unfold cnumber.
-    entailer!. {
-      (* proof carry is correct *)
-      admit.
-    } {
-      (* proof that written digit is correct *)
-      Check Zrepeat_app.   (* Hint: this lemma will be useful. *)
-      Check upd_Znth_app1. (* Hint: this lemma will be useful. *)
-      Check app_Znth2.     (* Hint: this lemma will be useful. *)
-      Check Znth_0_cons.   (* Hint: this lemma will be useful. *)
-      admit.
-    }
+     entailer!. *)
+    admit.
   } {
+    (* proof that loop invariant implies spec *)
     Intros carry_out.
-    Exists carry_out.
-    entailer!.
+    Intros results.
+    Exists limit.
+    Exists results.
     replace
-      (pre_number_length output - pre_number_length output)
+      (limit - limit)
     with 0 by lia.
-    unfold Zrepeat, Z.to_nat, repeat.
-    replace
-      (map ((fun x : ptrofs => Vlong (Ptrofs.to_int64 x)) oo Ptrofs.repr)
-         (sublist 0 (pre_number_length output)
-            (add_digits carry (number_digits left) (number_digits right))) ++
-       [])
-    with
-      (map (Vptrofs oo Ptrofs.repr) (sublist 0 (pre_number_length output)
-            (add_digits carry (number_digits left) (number_digits right))))
-    by list_solve.
-    unfold fill_number.
-    unfold cnumber, make_number, fill_number, writable_pre_number,
-    readable_number, digit_array. simpl.
-    (* Proof that loop invariant implies spec *)
+    (* unfold Zrepeat, Z.to_nat, repeat. *)
+    rewrite app_nil_r.
     entailer!.
-    admit. (*
-    replace
-      (Zlength
-        (sublist 0 (pre_number_length output)
-           (add_digits
-             carry
-             (number_digits left)
-             (number_digits right)) ++
-         Zrepeat 0
-           (pre_number_length output
-              - Zlength
-                  (add_digits carry (number_digits left)
-                     (number_digits right)))))
-    with
-      (pre_number_length output)
-    by admit.
-    entailer!. {
-      admit. (* TODO prove that addition repects bounds *)
-    } *)
-  }
+
+    remember
+      (fst
+        (add_digits carry (number_digits left)
+           (number_digits right) (Z.to_nat (pre_number_length output))))
+    as result.
+    unfold fill_number, cnumber, digit_array, number_digits,
+    number_array, readable_number, number_share, make_number.
+    replace (Zlength result) with (pre_number_length output).
+    entailer!.
+    admit.
+    admit.
 Admitted.

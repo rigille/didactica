@@ -18,16 +18,14 @@ Fixpoint repeat_right {X Y : Type}
   end.
 
 Fixpoint combine_default {X Y : Type}
-  (x : X) (y : Y)
+  (x : X) (y : Y) (size : nat)
   (lx : list X) (ly : list Y) : list (X * Y) :=
-  match lx with
-  | [] => repeat_left x ly
-  | (cons hlx tlx) =>
-      match ly with
-      | [] => (repeat_right (cons hlx tlx) y)
-      | (cons hly tly) =>
-          (hlx, hly) :: (combine_default x y tlx tly)
-      end
+  match size with
+  | O => []
+  | S pred =>
+      (cons
+        ((hd x lx), (hd y ly))
+        (combine_default x y pred (tl lx) (tl ly)))
   end.
 
 Definition theoretical_full_adder (base : Z) (carry : bool)
@@ -302,8 +300,8 @@ Fixpoint add_aux (base : Z) (carry : bool)
       (add_aux base next_carry tail))
   end.
 
-Definition number_add (base : Z) (carry : bool) (a b : list Z) : list Z :=
-  (fst (add_aux' base carry (combine_default 0 0 a b))).
+Definition number_add (base : Z) (carry : bool) (a b : list Z) (size : nat) : list Z * bool :=
+  (add_aux' base carry (combine_default 0 0 size a b)).
 
 Theorem full_adder_spec :
   forall base carry n m,

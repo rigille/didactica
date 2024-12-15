@@ -450,16 +450,3 @@ Proof.
       rewrite IHtdigits0; try assumption; reflexivity.
       inversion H0; lia. inversion H1; lia.
 Qed.
-
-Fixpoint add_aux (base carry : Z) (d0 d1 : list Z) : list Z :=
-  match d0 with
-  | [] => d1
-  | h0 :: t0 => match d1 with
-                | [] => h0 :: t0
-                | h1 :: t1 => let h' := (carry + h0 + h1) mod base in
-                              if h' <=? h0 then
-                                  h' :: (add_aux base 1 t0 t1)
-                              else
-                                  h' :: (add_aux base 0 t0 t1)
-                end
-  end.

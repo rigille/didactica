@@ -27,21 +27,12 @@ Record pre_number_data := build_pre_number_data {
   pre_number_length : Z;
 }.
 
-Check Zrepeat.
-Locate "-".
-
 Definition fill_number
   (data : pre_number_data) (digits : list Z) := 
   (build_number_data
     (pre_number_share data)
     (pre_number_array data)
-    (app
-      (sublist 0 (pre_number_length data) digits)
-      (Zrepeat
-        0
-        (Z.sub
-          (pre_number_length data)
-          (Zlength digits))))).
+    digits).
 
 (*
 Definition number_data_example :=
@@ -141,7 +132,7 @@ Definition comparison_int c : val :=
   | Gt => Vint (Int.repr 1)
   end.
 
-Definition add_digits : bool -> list Z -> list Z -> list Z :=
+Definition add_digits : bool -> list Z -> list Z -> nat -> (list Z * bool) :=
   number_add Int64.modulus.
 
 Definition digits_full_adder : bool -> Z -> Z -> (bool * Z) :=
@@ -221,6 +212,13 @@ Definition add_with_carry_spec : ident * funspec :=
         carry_out)
     ).
 
+Definition bool_at (b : bool) (pointer : val) : mpred :=
+  (data_at
+     Tsh
+     tulong
+     (Vlong (Int64.repr (Z.b2z b)))
+     pointer).
+
 Definition number_add_inner_full_spec : ident * funspec :=
   DECLARE _number_add_inner
   WITH
@@ -230,53 +228,31 @@ Definition number_add_inner_full_spec : ident * funspec :=
   PRE [ tptr tulong, tptr struct_number, tptr struct_number, tptr struct_number ]
     PROP ()
     PARAMS (
-      carry_pointer;
-      left_pointer; right_pointer; output_pointer)
+      carry_pointer; left_pointer; right_pointer; output_pointer)
     SEP (
-      (data_at
-        Tsh
-        tulong
-        (Vlong (Int64.repr (Z.b2z carry)))
-        carry_pointer);
+      (bool_at carry carry_pointer);
       (cnumber left left_pointer);
       (cnumber right right_pointer);
       (pre_cnumber output output_pointer))
   POST [ tvoid ]
-    EX carry_out : bool,
+    EX output_length : Z,
+    EX results : (list Z * bool),
     PROP (
-      let output_length := pre_number_length output in
-      let total :=
-        (add_digits
-          carry
-          (number_digits left)
-          (number_digits right)) in
-      let total_length := Zlength total in
-      let trail_left :=
-        (sublist output_length total_length (number_digits left)) in
-      let trail_right :=
-        (sublist output_length total_length (number_digits right)) in
-      (eq
-        (add_digits
-          carry_out
-          trail_left
-          trail_right)
-        (sublist
-          output_length
-          total_length
-          total)))
+      output_length = pre_number_length output;
+      results = (add_digits
+        carry
+        (number_digits left)
+        (number_digits right)
+        (Z.to_nat output_length)))
     RETURN ()
     SEP (
-      (data_at
-        Tsh
-        tulong
-        (Vlong (Int64.repr (Z.b2z carry_out)))
-        carry_pointer);
+      (bool_at (snd results) carry_pointer);
       (cnumber left left_pointer);
       (cnumber right right_pointer);
       (cnumber
         (fill_number
           output
-          (add_digits carry (number_digits left) (number_digits right)))
+          (fst results))
         output_pointer)).
 
 Definition Gprog : funspecs := [
