@@ -6,6 +6,7 @@ Require Import VST.floyd.library.
 Require Import Didactica.arithmetic.
 Require Import Didactica.number.
 Require Import Didactica.sublist.
+Require Import Didactica.Add.
 
 Lemma body_number_add_inner: semax_body Vprog Gprog f_number_add_inner number_add_inner_full_spec.
 Proof.
@@ -122,7 +123,6 @@ Proof.
     (* unfold Zrepeat, Z.to_nat, repeat. *)
     rewrite app_nil_r.
     entailer!.
-
     remember
       (fst
         (add_digits carry (number_digits left)
@@ -131,7 +131,17 @@ Proof.
     unfold fill_number, cnumber, digit_array, number_digits,
     number_array, readable_number, number_share, make_number.
     replace (Zlength result) with (pre_number_length output).
-    entailer!.
-    admit.
-    admit.
+    entailer!. {
+      (* proof that addition repects bounds *)
+      admit.
+    } {
+      rewrite Zlength_correct.
+      subst result.
+      unfold add_digits.
+      rewrite number_add_length.
+      rewrite Z2Nat.id.
+      reflexivity.
+      unfold digit_bound in H.
+      lia.
+    }
 Admitted.
