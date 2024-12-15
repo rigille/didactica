@@ -287,21 +287,44 @@ Definition add_aux' (base : Z) (carry : bool)
     ([], carry).
 
 Fixpoint add_aux (base : Z) (carry : bool)
-  (digits : list (Z * Z)) : list Z :=
+  (digits : list (Z * Z)) : list Z * bool :=
   match digits with
-  | [] => []
+  | [] => ([], carry)
   | (cons
       (left_head, right_head)
       tail) =>
     let (next_carry, result) :=
       full_adder base carry left_head right_head in
-    (cons
+    let (added_tail, final_carry) := add_aux base next_carry tail in
+    ((cons
       result
-      (add_aux base next_carry tail))
+      added_tail), final_carry)
   end.
 
 Definition number_add (base : Z) (carry : bool) (a b : list Z) (size : nat) : list Z * bool :=
-  (add_aux' base carry (combine_default 0 0 size a b)).
+  (add_aux base carry (combine_default 0 0 size a b)).
+
+Theorem number_add_length :
+  forall (size : nat) (base : Z) (carry : bool) (a b : list Z),
+  length (fst (number_add base carry a b size)) = size.
+Proof.
+  induction size; intros.
+  - reflexivity.
+  - unfold number_add.
+    unfold combine_default; fold (@combine_default Z).
+    unfold add_aux; fold add_aux.
+    remember
+      (full_adder base carry (hd 0 a) (hd 0 b))
+    as added. destruct added.
+    remember
+      (add_aux base b0 (combine_default 0 0 size (tl a) (tl b)))
+    as new_tail. destruct new_tail.
+    intros.
+    assert (l = fst (number_add base b0 (tl a) (tl b) size)).
+    * unfold number_add. rewrite <- Heqnew_tail.
+      reflexivity.
+    * simpl. apply eq_S. subst l. apply IHsize.
+Qed.
 
 Theorem full_adder_spec :
   forall base carry n m,
