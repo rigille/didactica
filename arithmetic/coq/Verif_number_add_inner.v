@@ -58,9 +58,9 @@ Proof.
             (fst results))
           (Zrepeat Vundef (limit - j)))
         (pre_number_array output)))%assert. {
-       unfold digit_bound in H; rep_lia.
+       unfold digit_bound, base_bound in H; rep_lia.
   } {
-       unfold digit_bound in H; rep_lia.
+       unfold digit_bound, base_bound in H; rep_lia.
   } {
     Exists carry.
     Exists (@nil Z, carry).
@@ -133,7 +133,8 @@ Proof.
     replace (Zlength result) with (pre_number_length output).
     entailer!. {
       (* proof that addition repects bounds *)
-      admit.
+      apply number_add_bound. rep_lia.
+      apply H4. apply H6.
     } {
       rewrite Zlength_correct.
       subst result.
@@ -141,7 +142,7 @@ Proof.
       rewrite number_add_length.
       rewrite Z2Nat.id.
       reflexivity.
-      unfold digit_bound in H.
+      unfold digit_bound, base_bound in H.
       lia.
     }
 Admitted.

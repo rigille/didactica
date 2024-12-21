@@ -367,7 +367,7 @@ Proof.
       lia.
       } }
     } {
-      unfold digit_bound in *.
+      unfold digit_bound, Add.base_bound in *.
       apply repr_inj_unsigned64 in HRE; try rep_lia.
       subst i. assert (compare (number_digits data0) (number_digits data1) = Eq).
       - rewrite (sublist_same_gen 0 u (number_digits data1)) in H6; try lia.

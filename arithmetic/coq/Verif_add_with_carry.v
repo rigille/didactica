@@ -27,6 +27,7 @@ Proof.
         (a + b)
         Int64.modulus
         ltac:(rep_lia)).
+    unfold base_bound.
     rep_lia.
   - apply Int64.eqm_samerepr. unfold Int64.eqm.
     unfold Zbits.eqmod. exists ((a + b)/Int64.modulus).
@@ -44,7 +45,7 @@ Lemma ltu_translation : forall a b,
     (Z.ltb a b)).
 Proof.
   intros a b bound_a bound_b.
-  unfold digit_bound in *.
+  unfold digit_bound, base_bound in *.
   destruct
     (Int64.ltu (Int64.repr a) (Int64.repr b))
   eqn:comparison.
@@ -67,8 +68,8 @@ Proof.
       left_digit
       right_digit
       ltac:(rep_lia)
-      ltac:(unfold digit_bound in *; lia)
-      ltac:(unfold digit_bound in *; lia));
+      ltac:(unfold digit_bound, base_bound in *; lia)
+      ltac:(unfold digit_bound, base_bound in *; lia));
   intros back_to_bool; simpl in back_to_bool.
   forward. deadvars!. normalize.
   generalize
@@ -78,7 +79,7 @@ Proof.
     (overflowing_add
       (Z.b2z carry_in)
       left_digit
-      ltac:(unfold digit_bound; rep_lia)
+      ltac:(unfold digit_bound, base_bound; rep_lia)
       H);
   intros [temporary_bound overflowed];
   rewrite overflowed; clear overflowed.
@@ -103,7 +104,7 @@ Proof.
       temporary
       (Z.b2z carry_in)
       temporary_bound
-      ltac:(unfold digit_bound; rep_lia)).
+      ltac:(unfold digit_bound, base_bound; rep_lia)).
   rewrite
     (ltu_translation
       result

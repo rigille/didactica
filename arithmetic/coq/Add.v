@@ -382,3 +382,75 @@ Proof.
     }
   }
 Qed.
+
+Theorem full_adder_bounded :
+  forall base carry left right,
+  1 < base ->
+  -1 < left < base ->
+  -1 < right < base ->
+  -1 < (snd (full_adder base carry left right)) < base.
+Proof.
+Admitted.
+
+Definition base_bound (base : Z) (digit : Z) :=
+  -1 < digit < base.
+
+Definition double_base_bound (base : Z) (pair : Z * Z) :=
+  (and
+    (-1 < (fst pair) < base)
+    (-1 < (snd pair) < base)).
+
+Definition number_bound (base : Z) (digits : list Z) :=
+  Forall (base_bound base) digits.
+
+Theorem combine_default_bounded : forall base size a b,
+  1 < base ->
+  number_bound base a ->
+  number_bound base b ->
+  Forall (double_base_bound base) (combine_default 0 0 size a b).
+Proof.
+  induction size; intros.
+  - simpl. apply Forall_nil.
+  - simpl. apply Forall_cons.
+    * unfold double_base_bound.
+      simpl. split.
+      + destruct a. simpl. lia.
+        simpl. inversion H0; subst. apply H4.
+      + destruct b. simpl. lia.
+        simpl. inversion H1; subst.  apply H4.
+    * apply IHsize. apply H.
+      + destruct a. apply Forall_nil. inversion H0; subst.
+        apply H5.
+      + destruct b. apply Forall_nil. inversion H1; subst.
+        apply H5.
+Qed.
+
+Theorem number_add_bound :
+  forall (base : Z) (carry : bool) (a b : list Z) (size : nat),
+  1 < base ->
+  number_bound base a ->
+  number_bound base b ->
+  Forall (base_bound base) (fst (number_add base carry a b size)).
+Proof.
+  unfold number_add. intros.
+  generalize
+    (combine_default_bounded base size a b H H0 H1).
+  revert carry.
+  generalize dependent (combine_default 0 0 size a b).
+  induction l; intros.
+  - simpl. apply Forall_nil.
+  - inversion H2; subst. destruct a0 as [left_digit right_digit].
+    unfold double_base_bound in H5. simpl in H5.
+    inversion H5. clear H5.
+    unfold add_aux; fold add_aux. rewrite reduce_let. rewrite reduce_let.
+    unfold fst at 1. apply Forall_cons.
+    * unfold base_bound. apply full_adder_bounded; try assumption.
+    * apply IHl. apply H6.
+Qed.
+
+(*
+Forall digit_bound
+  (fst
+     (add_digits carry (number_digits left) (number_digits right)
+        (Z.to_nat (pre_number_length output))))
+*)

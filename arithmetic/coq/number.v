@@ -57,7 +57,7 @@ Definition pre_digit_array
     (pre_number_array data)).
 
 Definition digit_bound (digit : Z) :=
-  -1 < digit < Int64.modulus.
+  base_bound Int64.modulus digit.
 
 Definition readable_number (data : number_data) :=
   readable_share (number_share data).
