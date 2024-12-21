@@ -89,27 +89,25 @@ Proof.
     remember (snd full_adder_result) as new_digit.
     remember (fst full_adder_result) as new_carry.
     forward. forward.
+
     Exists new_carry.
-    (*replace
+    remember
+      (add_digits carry (number_digits left)
+        (number_digits right) (Z.to_nat (i + 1)))
+    as new_results.
+    Exists new_results.
+    replace
       (upd_Znth i
-        (app
-          (map
-            (Vptrofs oo Ptrofs.repr)
-            (sublist 0 i total))
-          (Zrepeat Vundef (limit - i)))
-        (Vlong (Int64.repr new_digit)))
+        (map (Vptrofs oo Ptrofs.repr) (fst results) ++
+        Zrepeat Vundef (limit - i)) (Vlong (Int64.repr new_digit)))
     with
       (app
-        (map (Vptrofs oo Ptrofs.repr) (sublist 0 (i + 1) total))
-        (Zrepeat Vundef (limit - (i + 1)))).
-    replace
-      (add_digits new_carry
-            (sublist (i + 1) total_length (number_digits left))
-            (sublist (i + 1) total_length (number_digits right)))
-    with
-      (sublist (i + 1) total_length total).
+        (map (Vptrofs oo Ptrofs.repr) (fst new_results))
+        (Zrepeat Vundef (limit - (i + 1)))) by admit.
     unfold cnumber.
-     entailer!. *)
+    entailer!.
+    (* I need to prove that we can compose invocations of
+       number_add *)
     admit.
   } {
     (* proof that loop invariant implies spec *)
