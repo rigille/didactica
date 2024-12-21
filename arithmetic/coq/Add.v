@@ -3,6 +3,13 @@ Import ListNotations.
 (* Require Import Didactica.Main. *)
 Local Open Scope Z_scope.
 
+Definition reduce_let {X Y Z} (p : X * Y) (c : X -> Y -> Z) :
+  (let (a, b) := p in (c a b)) = (c (fst p) (snd p)).
+Proof.
+  destruct p.
+  reflexivity.
+Qed.
+
 Fixpoint repeat_left {X Y : Type}
   (x : X) (ly : list Y) : list (X * Y) :=
   match ly with
@@ -304,6 +311,12 @@ Fixpoint add_aux (base : Z) (carry : bool)
 Definition number_add (base : Z) (carry : bool) (a b : list Z) (size : nat) : list Z * bool :=
   (add_aux base carry (combine_default 0 0 size a b)).
 
+Theorem length_cons : forall {X} (h : X) (t : list X),
+  length (h :: t) = S (length t).
+Proof.
+  reflexivity.
+Qed.
+
 Theorem number_add_length :
   forall (size : nat) (base : Z) (carry : bool) (a b : list Z),
   length (fst (number_add base carry a b size)) = size.
@@ -313,17 +326,10 @@ Proof.
   - unfold number_add.
     unfold combine_default; fold (@combine_default Z).
     unfold add_aux; fold add_aux.
-    remember
-      (full_adder base carry (hd 0 a) (hd 0 b))
-    as added. destruct added.
-    remember
-      (add_aux base b0 (combine_default 0 0 size (tl a) (tl b)))
-    as new_tail. destruct new_tail.
-    intros.
-    assert (l = fst (number_add base b0 (tl a) (tl b) size)).
-    * unfold number_add. rewrite <- Heqnew_tail.
-      reflexivity.
-    * simpl. apply eq_S. subst l. apply IHsize.
+    rewrite reduce_let.
+    rewrite reduce_let.
+    unfold fst at 1. rewrite length_cons.
+    apply eq_S. apply IHsize.
 Qed.
 
 Theorem full_adder_spec :

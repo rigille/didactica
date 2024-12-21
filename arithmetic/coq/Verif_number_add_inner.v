@@ -68,7 +68,7 @@ Proof.
     unfold pre_digit_array.
     entailer!.
   } {
-    (* prove loop invariant is preserved *)
+    (* prove loop invariant is preserved by loop body *)
     rewrite <- seq_assoc.
     forward_call. Intros vret; subst vret.
     forward. deadvars!.
