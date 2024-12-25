@@ -35,6 +35,42 @@ Fixpoint combine_default {X Y : Type}
         (combine_default x y pred (tl lx) (tl ly)))
   end.
 
+Fixpoint fold_map {X Y}
+  (f : Y -> X -> Y * X) (y : Y) (l : list X) : Y * (list X) :=
+  match l with
+  | [] => (y, [])
+  | h :: t =>
+    let (next_y, next_x) := f y h in
+    let (final_y, final_tail) := (fold_map f next_y t) in
+    (final_y, next_x :: final_tail)
+  end.
+
+Theorem fold_map_concatenate : forall {X Y} a b (f : Y -> X -> Y * X) y,
+  (eq
+    (fold_map f y (a ++ b))
+    (let (intermediate_y, new_a) := fold_map f y a in
+    let (final_y, new_b) := fold_map f intermediate_y b in
+    (final_y, new_a ++ new_b))).
+Proof.
+  induction a; intros.
+  - simpl. destruct (fold_map f y b); reflexivity.
+  - simpl. remember (f y a) as current_iteration.
+    rewrite reduce_let with (p := current_iteration).
+    rewrite reduce_let with (p := current_iteration).
+    rewrite IHa.
+    remember
+      (fold_map f (fst current_iteration) a0)
+    as first_leg.
+    rewrite reduce_let with (p := first_leg).
+    rewrite reduce_let with (p := first_leg).
+    remember
+      (fold_map f (fst first_leg) b)
+    as second_leg.
+    rewrite reduce_let with (p := second_leg).
+    rewrite reduce_let with (p := second_leg).
+    reflexivity.
+Qed.
+
 Definition theoretical_full_adder (base : Z) (carry : bool)
   (left right : Z) : bool * Z :=
   let carry_z := Z.b2z carry in
@@ -448,6 +484,30 @@ Proof.
     * apply IHl. apply H6.
 Qed.
 
+Theorem next_carry : forall n base carry left_number right_number,
+(eq
+  (fst
+    (full_adder
+      base
+      (snd
+         (number_add
+           base
+           carry
+           left_number
+           right_number
+           n))
+      (nth n left_number 0)
+      (nth n right_number 0)))
+  (snd
+    (number_add
+      base
+      carry
+      left_number
+      right_number
+      (S n)))).
+Proof.
+  admit.
+Admitted.
 (*
 Forall digit_bound
   (fst
