@@ -24,7 +24,7 @@ Proof.
   forward_for_simple_bound
   limit
   (EX j : Z, EX carry_out : bool,
-   EX results : list Z * bool,
+   EX results : bool * list Z,
    PROP (
      results =
        (add_digits
@@ -32,7 +32,7 @@ Proof.
          (number_digits left)
          (number_digits right)
          (Z.to_nat j));
-     carry_out = (snd results)
+     carry_out = (fst results)
    )
    LOCAL (
      temp _limit (Vptrofs (Ptrofs.repr limit));
@@ -55,7 +55,7 @@ Proof.
         (app
           (map
             (Vptrofs oo Ptrofs.repr)
-            (fst results))
+            (snd results))
           (Zrepeat Vundef (limit - j)))
         (pre_number_array output)))%assert. {
        unfold digit_bound, base_bound in H; rep_lia.
@@ -63,7 +63,7 @@ Proof.
        unfold digit_bound, base_bound in H; rep_lia.
   } {
     Exists carry.
-    Exists (@nil Z, carry).
+    Exists (carry, @nil Z).
     entailer!. rewrite app_nil_l.
     unfold pre_digit_array.
     entailer!.
@@ -98,17 +98,42 @@ Proof.
     Exists new_results.
     replace
       (upd_Znth i
-        (map (Vptrofs oo Ptrofs.repr) (fst results) ++
+        (map (Vptrofs oo Ptrofs.repr) (snd results) ++
         Zrepeat Vundef (limit - i)) (Vlong (Int64.repr new_digit)))
     with
       (app
-        (map (Vptrofs oo Ptrofs.repr) (fst new_results))
+        (map (Vptrofs oo Ptrofs.repr) (snd new_results))
         (Zrepeat Vundef (limit - (i + 1)))) by admit.
     unfold cnumber.
     entailer!.
+    Print Znth.
     (* I need to prove that we can compose invocations of
        number_add *)
-    admit.
+    unfold add_digits, number_add, add_aux; fold add_aux.
+    remember
+      (combine_default 0 0 (Z.to_nat i) (number_digits left)
+        (number_digits right))
+    as l.
+    Search Znth.
+    rewrite Znth_to_nth; try lia.
+    rewrite Znth_to_nth; try lia.
+    rewrite Z2Nat.inj_add; try lia.
+    replace
+      (Nat.add (Z.to_nat i) (Z.to_nat 1))
+    with
+      (S (Z.to_nat i)) by lia.
+    Check next_carry.
+    unfold digits_full_adder.
+    Check number_add.
+    replace
+      (fold_map (number_add_body Int64.modulus) carry l)
+    with
+      (number_add Int64.modulus carry (number_digits left) (number_digits right) (Z.to_nat i))
+    .
+    rewrite next_carry.
+    reflexivity.
+    subst l.
+    reflexivity.
   } {
     (* proof that loop invariant implies spec *)
     Intros carry_out.
@@ -122,7 +147,7 @@ Proof.
     rewrite app_nil_r.
     entailer!.
     remember
-      (fst
+      (snd
         (add_digits carry (number_digits left)
            (number_digits right) (Z.to_nat (pre_number_length output))))
     as result.

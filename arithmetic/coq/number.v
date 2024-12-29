@@ -132,7 +132,7 @@ Definition comparison_int c : val :=
   | Gt => Vint (Int.repr 1)
   end.
 
-Definition add_digits : bool -> list Z -> list Z -> nat -> (list Z * bool) :=
+Definition add_digits : bool -> list Z -> list Z -> nat -> (bool * list Z) :=
   number_add Int64.modulus.
 
 Definition digits_full_adder : bool -> Z -> Z -> (bool * Z) :=
@@ -236,7 +236,7 @@ Definition number_add_inner_full_spec : ident * funspec :=
       (pre_cnumber output output_pointer))
   POST [ tvoid ]
     EX output_length : Z,
-    EX results : (list Z * bool),
+    EX results : (bool * list Z),
     PROP (
       output_length = pre_number_length output;
       results = (add_digits
@@ -246,13 +246,13 @@ Definition number_add_inner_full_spec : ident * funspec :=
         (Z.to_nat output_length)))
     RETURN ()
     SEP (
-      (bool_at (snd results) carry_pointer);
+      (bool_at (fst results) carry_pointer);
       (cnumber left left_pointer);
       (cnumber right right_pointer);
       (cnumber
         (fill_number
           output
-          (fst results))
+          (snd results))
         output_pointer)).
 
 Definition Gprog : funspecs := [

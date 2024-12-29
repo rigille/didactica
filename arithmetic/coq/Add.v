@@ -35,8 +35,8 @@ Fixpoint combine_default {X Y : Type}
         (combine_default x y pred (tl lx) (tl ly)))
   end.
 
-Fixpoint fold_map {X Y}
-  (f : Y -> X -> Y * X) (y : Y) (l : list X) : Y * (list X) :=
+Fixpoint fold_map {X Y Z}
+  (f : Y -> X -> Y * Z) (y : Y) (l : list X) : Y * (list Z) :=
   match l with
   | [] => (y, [])
   | h :: t =>
@@ -45,7 +45,7 @@ Fixpoint fold_map {X Y}
     (final_y, next_x :: final_tail)
   end.
 
-Theorem fold_map_concatenate : forall {X Y} a b (f : Y -> X -> Y * X) y,
+Theorem fold_map_concatenate : forall {X Y Z} a b (f : Y -> X -> Y * Z) y,
   (eq
     (fold_map f y (a ++ b))
     (let (intermediate_y, new_a) := fold_map f y a in
@@ -68,6 +68,18 @@ Proof.
     as second_leg.
     rewrite reduce_let with (p := second_leg).
     rewrite reduce_let with (p := second_leg).
+    reflexivity.
+Qed.
+
+Theorem fold_map_length : forall {X Y Z} l (f : Y -> X -> Y * Z) y,
+  (eq
+    (length l)
+    (length (snd (fold_map f y l)))).
+Proof.
+  induction l; intros.
+  - reflexivity.
+  - simpl. rewrite reduce_let. rewrite reduce_let.
+    simpl. rewrite <- IHl with (f := f) (y := (fst (f y a))). 
     reflexivity.
 Qed.
 
@@ -344,8 +356,12 @@ Fixpoint add_aux (base : Z) (carry : bool)
       added_tail), final_carry)
   end.
 
-Definition number_add (base : Z) (carry : bool) (a b : list Z) (size : nat) : list Z * bool :=
-  (add_aux base carry (combine_default 0 0 size a b)).
+Definition number_add_body (base : Z) (carry : bool) (digits : Z * Z) : bool * Z :=
+  let (left_head, right_head) := digits in
+  full_adder base carry left_head right_head.
+
+Definition number_add (base : Z) (carry : bool) (a b : list Z) (size : nat) : bool * list Z :=
+  fold_map (number_add_body base) carry (combine_default 0 0 size a b).
 
 Theorem length_cons : forall {X} (h : X) (t : list X),
   length (h :: t) = S (length t).
@@ -353,19 +369,28 @@ Proof.
   reflexivity.
 Qed.
 
-Theorem number_add_length :
-  forall (size : nat) (base : Z) (carry : bool) (a b : list Z),
-  length (fst (number_add base carry a b size)) = size.
+Theorem combine_default_length : forall {X Y} size a b (x : X) (y : Y),
+  length (combine_default x y size a b) = size.
 Proof.
   induction size; intros.
   - reflexivity.
-  - unfold number_add.
-    unfold combine_default; fold (@combine_default Z).
-    unfold add_aux; fold add_aux.
-    rewrite reduce_let.
-    rewrite reduce_let.
-    unfold fst at 1. rewrite length_cons.
-    apply eq_S. apply IHsize.
+  - simpl. rewrite IHsize. reflexivity.
+Qed.
+
+Theorem number_add_length :
+  forall (size : nat) (base : Z) (carry : bool) (a b : list Z),
+  length (snd (number_add base carry a b size)) = size.
+Proof.
+  intros.
+  unfold number_add.
+  remember
+    (fun (y : bool) (x : Z * Z) =>
+      let (left_head, right_head) := x in
+      full_adder base y left_head right_head)
+  as f.
+  rewrite <- combine_default_length with
+  (a := a) (b := b) (x := 0) (y := 0).
+  symmetry. apply fold_map_length.
 Qed.
 
 Theorem full_adder_spec :
@@ -466,7 +491,7 @@ Theorem number_add_bound :
   1 < base ->
   number_bound base a ->
   number_bound base b ->
-  Forall (base_bound base) (fst (number_add base carry a b size)).
+  Forall (base_bound base) (snd (number_add base carry a b size)).
 Proof.
   unfold number_add. intros.
   generalize
@@ -478,27 +503,130 @@ Proof.
   - inversion H2; subst. destruct a0 as [left_digit right_digit].
     unfold double_base_bound in H5. simpl in H5.
     inversion H5. clear H5.
-    unfold add_aux; fold add_aux. rewrite reduce_let. rewrite reduce_let.
-    unfold fst at 1. apply Forall_cons.
+    unfold add_aux; fold add_aux.
+    unfold snd at 1. rewrite reduce_let. unfold fold_map; fold (@fold_map (Z * Z) bool).
+    rewrite reduce_let.
+    rewrite reduce_let. unfold snd at 1.
+    apply Forall_cons.
     * unfold base_bound. apply full_adder_bounded; try assumption.
     * apply IHl. apply H6.
 Qed.
+
+
+Lemma nth_next : forall X (n : nat)
+  (default : X) digits,
+  (eq
+    (nth
+      (S n)
+      digits
+      default)
+    (nth n (tl digits) default)).
+Proof.
+  intros.  destruct digits; simpl.
+  - destruct n; reflexivity.
+  - reflexivity. 
+Qed.
+
+Lemma nth_0 : forall X
+  (default : X) digits,
+  (eq
+    (nth
+      0
+      digits
+      default)
+    (hd default digits)).
+Proof.
+  intros. destruct digits; reflexivity.
+Qed.
+
+Lemma tl_combine_default : forall X Y (n : nat)
+  (left_default : X) (right_default : Y)
+  left_digits right_digits,
+  (eq
+    (tl (combine_default
+      left_default
+      right_default
+      (S n)
+      left_digits
+      right_digits))
+    (combine_default
+      left_default
+      right_default
+      n
+      (tl left_digits)
+      (tl right_digits))).
+Proof.
+Admitted.
+
+
+Lemma combine_default_Sn : forall X Y (n : nat)
+  (left_default : X) (right_default : Y)
+  left_digits right_digits,
+  (eq
+    (combine_default
+      left_default
+      right_default
+      (S n)
+      left_digits
+      right_digits)
+    (app
+      (combine_default
+        left_default
+        right_default
+        n
+        left_digits
+        right_digits)
+      [(pair
+        (nth n left_digits left_default)
+        (nth n right_digits right_default))])).
+Proof.
+Admitted.
+
+Lemma nth_combine : forall X Y (n m : nat)
+  (H : (Nat.lt n m))
+  (left_default : X) (right_default : Y)
+  left_digits right_digits,
+  (eq
+    (nth
+      n
+      (combine_default left_default right_default m left_digits right_digits)
+      (left_default, right_default))
+    ((nth n left_digits left_default), (nth n right_digits right_default))).
+Proof.
+  induction n.
+  - destruct m; intros.
+    + inversion H.
+    + simpl. rewrite nth_0. rewrite nth_0. reflexivity.
+  - destruct m; intros.
+    + inversion H.
+    + simpl. rewrite nth_next. rewrite nth_next.
+      apply IHn. lia.
+Qed.
+
+Search nth.
+
+(*
+Theorem fold_map_concatenate : forall {X Y Z} a b (f : Y -> X -> Y * Z) y,
+  (eq
+    (fold_map f y (a ++ b))
+    (let (intermediate_y, new_a) := fold_map f y a in
+    let (final_y, new_b) := fold_map f intermediate_y b in
+    (final_y, new_a ++ new_b))).
+
+Definition number_add (base : Z) (carry : bool) (a b : list Z) (size : nat) : bool * list Z :=
+  fold_map (number_add_body base) carry (combine_default 0 0 size a b).
+ *)
 
 Theorem next_carry : forall n base carry left_number right_number,
 (eq
   (fst
     (full_adder
       base
-      (snd
-         (number_add
-           base
-           carry
-           left_number
-           right_number
-           n))
+      (fst
+         (number_add base carry left_number right_number n))
       (nth n left_number 0)
       (nth n right_number 0)))
-  (snd
+  (fst
     (number_add
       base
       carry
@@ -506,8 +634,18 @@ Theorem next_carry : forall n base carry left_number right_number,
       right_number
       (S n)))).
 Proof.
-  admit.
-Admitted.
+  Search (_ < _).
+  intros.
+  unfold number_add.
+  rewrite combine_default_Sn.
+  rewrite fold_map_concatenate.
+  rewrite reduce_let.
+  rewrite reduce_let.
+  cbn [fst fold_map].
+  rewrite reduce_let.
+  cbn [fst number_add_body].
+  reflexivity.
+Qed.
 (*
 Forall digit_bound
   (fst
