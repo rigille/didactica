@@ -13,8 +13,6 @@ Check nat_rect.
 
 Compute Nat.iter 0 (Nat.add 2) 4.
 
-Locate Nat.iter.
-Search "iter".
 Lemma uncurry_curry : forall A B C (f : A * B -> C),
   uncurry (curry f) = f.
 Proof.
@@ -38,19 +36,6 @@ Proof.
   - rewrite IHm. reflexivity.
 Qed.
 
-Inductive spec :=
-  | make_spec
-      (parameters : list spec)
-      (output : Type).
-
-Definition arrow (X Y : Type) : Type := X -> Y.
-
-Fixpoint flatten_spec (s : spec) : Type :=
-  match s with
-  | make_spec parameters output =>
-      fold_right arrow output (map flatten_spec parameters)
-  end.
-
 Fixpoint variadic (X Y : Type) (n : nat) : Type :=
   match n with
   | O => Y
@@ -67,21 +52,6 @@ Definition multi_cons {X : Type} (n : nat) :=
   @multi_cons_aux X n [].
 
 Compute multi_cons 3 true false false.
-
-Definition tip (X : Type) : spec :=
-  make_spec [] X.
-
-Compute forall A B : Type,
-  flatten_spec (make_spec [(make_spec [tip B; tip A] A); tip A; tip (list B)] A).
-
-(* Fixpoint extensionally_equal (s : spec) (f g : flatten_spec s) : Type :=
-  match s with
-  | make_spec parameters output =>
-      match jj
-  end. *)
-
-Definition fib (n : nat) : nat :=
-  fst (iter n fib_step (0, 1)).
 
 (* For factorial, we can use a similar pair approach *)
 Definition fact_step (p : nat * nat) : nat * nat :=
